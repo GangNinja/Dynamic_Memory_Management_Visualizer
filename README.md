@@ -132,3 +132,7 @@ It provides a visual and interactive way to understand complex memory allocation
 Author
 
 Developed as an educational project to demonstrate dynamic memory management concepts through visualization.
+by
+Diwakar 
+Narasimha
+Likith
