@@ -65,3 +65,132 @@ color:black;
 .fragment{
 background:#ff4444;
 }
+
+/* Paging Styles */
+.mode-tabs {
+  margin: 20px auto;
+  padding: 10px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px;
+  width: 60%;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  background: rgba(255,255,255,0.2);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.tab-btn.active {
+  background: #00c6ff;
+  transform: scale(1.05);
+}
+
+.section {
+  display: none;
+}
+
+.section.active {
+  display: block;
+}
+
+.paging-controls {
+  margin: 20px auto;
+  padding: 20px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px;
+  width: 60%;
+}
+
+#framesContainer {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 40px;
+  height: 120px;
+  border: 2px solid white;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.frame {
+  width: 60px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  border-right: 1px solid #333;
+  font-size: 18px;
+}
+
+.frame.empty {
+  background: #777;
+  color: white;
+}
+
+.frame.hit {
+  background: #00ff99;
+  color: black;
+}
+
+.frame.fault {
+  background: #ff4444;
+  color: white;
+  animation: pulse 0.5s;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+#pagingStats {
+  margin-top: 20px;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.trace-table {
+  margin: 20px auto;
+  width: 80%;
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.trace-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.trace-table th, .trace-table td {
+  padding: 12px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.3);
+}
+
+.trace-table th {
+  background: rgba(0,198,255,0.5);
+}
+
+.trace-table tr:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.ref-input {
+  width: 400px;
+  height: 80px;
+  resize: vertical;
+}
+
+
