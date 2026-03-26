@@ -7,30 +7,60 @@
 
 <body>
 
-<h1>Dynamic Memory Management Visualizer</h1>
+<h1>Memory Management Visualizer (Partitioning & Paging)</h1>
 
-<div class="controls">
-
-<label>Total Memory</label>
-<input type="number" id="totalMemory" value="1000">
-
-<label>Process ID</label>
-<input type="text" id="pid">
-
-<label>Process Size</label>
-<input type="number" id="psize">
-
-<select id="algorithm">
-<option value="first">First Fit</option>
-<option value="best">Best Fit</option>
-<option value="worst">Worst Fit</option>
-</select>
-
-<button onclick="allocate()">Allocate</button>
-
-<button onclick="resetMemory()">Reset</button>
-
+<div class="mode-tabs">
+  <button class="tab-btn active" onclick="switchMode('partition')">Partitioning</button>
+  <button class="tab-btn" onclick="switchMode('paging')">Paging</button>
 </div>
+
+<div id="partitionSection" class="section active">
+  <div class="controls">
+    <label>Total Memory</label>
+    <input type="number" id="totalMemory" value="1000">
+    <label>Process ID</label>
+    <input type="text" id="pid">
+    <label>Process Size</label>
+    <input type="number" id="psize">
+    <select id="algorithm">
+      <option value="first">First Fit</option>
+      <option value="best">Best Fit</option>
+      <option value="worst">Worst Fit</option>
+    </select>
+    <button onclick="allocate()">Allocate</button>
+    <button onclick="resetMemory()">Reset</button>
+  </div>
+</div>
+
+<div id="pagingSection" class="section">
+  <div class="paging-controls">
+    <label># Frames:</label>
+    <input type="number" id="numFrames" value="3" min="1" max="8">
+    <label>Reference String:</label>
+    <textarea class="ref-input" id="refString" placeholder="e.g. 7,0,1,2,0,3,0,4,2,3,0,3,2,1,2,0,1,7,0,1">7,0,1,2,0,3,0,4,2,3,0,3,2,1,2,0,1,7,0,1</textarea>
+    <br>
+    <select id="pagingAlgo">
+      <option value="fifo">FIFO</option>
+      <option value="lru">LRU</option>
+      <option value="optimal">Optimal</option>
+    </select>
+    <button onclick="runPaging()">Run Simulation</button>
+    <button onclick="resetPaging()">Reset</button>
+  </div>
+  <h2>Page Frames</h2>
+  <div id="framesContainer"></div>
+  <div id="pagingStats">Page Faults: 0</div>
+  <h3>Reference Trace</h3>
+  <div id="traceContainer" class="trace-table">
+    <table>
+      <thead><tr><th>Ref</th><th>Frames</th><th>Fault?</th></tr></thead>
+      <tbody id="traceBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<xai:function_call name="edit_file">
+<parameter name="path">c:/Users/asus/Desktop/main/index.html
 
 <h2>Memory Layout</h2>
 
