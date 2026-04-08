@@ -1,4 +1,4 @@
-# MemVis – Dynamic Memory Management Visualizer (v2)
+# MemVis – Dynamic Memory Management Visualizer (v1.2)
 
 MemVis is an interactive educational tool that visualizes how memory management works inside an operating system. It allows students to explore concepts such as **memory allocation algorithms, paging, stack vs heap memory behavior, and garbage collection** through real-time simulations and visual representations.
 
