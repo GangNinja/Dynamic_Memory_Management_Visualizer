@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import random
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS to allow frontend cross-origin requests
@@ -20,6 +21,139 @@ history = []
 
 # Global variables for segmentation simulation
 segments = []
+
+def optimal_replace(frames, page_sequence, current_index):
+    """Find the index of the frame to replace using Optimal algorithm."""
+    farthest_index = -1
+    replace_index = -1
+    has_future_use = False
+    
+    for i, frame_page in enumerate(frames):
+        # Find next occurrence after current_index
+        next_use = -1
+        for j in range(current_index + 1, len(page_sequence)):
+            if page_sequence[j] == frame_page:
+                next_use = j
+                has_future_use = True
+                break
+        
+        if next_use == -1:
+            if not has_future_use:
+                # If no page has future use, keep track of the last index
+                replace_index = i
+            else:
+                # If some pages have future use, replace this one immediately
+                return i
+        else:
+            # Track the page with the farthest next use
+            if next_use > farthest_index:
+                farthest_index = next_use
+                replace_index = i
+    
+    return replace_index
+
+def simulate_paging_sequence(pages, algorithm, frame_size):
+    """Simulate paging for an entire page sequence using the requested algorithm."""
+    history = []
+    frames = []
+    disk = []
+    page_sequence = []
+    fifo_queue = []
+    lru_stack = []
+    page_faults = 0
+
+    for i, page in enumerate(pages):
+        page_sequence.append(page)
+
+        if page in frames:
+            status = "HIT"
+            if algorithm == 'LRU':
+                # Update LRU on hit
+                lru_stack.remove(page)
+                lru_stack.append(page)
+        else:
+            status = "FAULT"
+            page_faults += 1
+
+            if len(frames) < frame_size:
+                frames.append(page)
+                fifo_queue.append(page)
+                lru_stack.append(page)
+            else:
+                if algorithm == 'FIFO':
+                    replace_index = 0
+                elif algorithm == 'LRU':
+                    least_recent = lru_stack.pop(0)
+                    replace_index = frames.index(least_recent)
+                elif algorithm == 'OPTIMAL':
+                    replace_index = optimal_replace(frames, page_sequence, i)
+                else:
+                    replace_index = 0
+
+                removed_page = frames[replace_index]
+                disk.append(removed_page)
+                frames[replace_index] = page
+
+                # Keep state queues consistent for FIFO/LRU/OPTIMAL
+                if removed_page in fifo_queue:
+                    fifo_queue.remove(removed_page)
+                fifo_queue.append(page)
+
+                if removed_page in lru_stack:
+                    lru_stack.remove(removed_page)
+                lru_stack.append(page)
+
+        history.append({
+            "step": i + 1,
+            "page": page,
+            "frames": frames.copy(),
+            "status": status
+        })
+
+    hits = len(pages) - page_faults
+    return {
+        'history': history,
+        'frames': frames,
+        'page_faults': page_faults,
+        'hits': hits,
+        'disk': disk,
+        'sequence': page_sequence
+    }
+
+@app.route('/paging/batch', methods=['POST'])
+def batch_paging():
+    """Process a full page sequence in batch mode and return the complete simulation."""
+    data = request.get_json()
+    if not data or 'sequence' not in data or 'algorithm' not in data or 'frame_size' not in data:
+        return jsonify({'error': 'sequence, algorithm, and frame_size are required'}), 400
+
+    sequence = data.get('sequence')
+    algorithm = data.get('algorithm', 'FIFO').upper()
+
+    if algorithm not in ['FIFO', 'LRU', 'OPTIMAL']:
+        return jsonify({'error': 'algorithm must be FIFO, LRU, or OPTIMAL'}), 400
+
+    try:
+        frame_size = int(data.get('frame_size'))
+    except (ValueError, TypeError):
+        return jsonify({'error': 'frame_size must be an integer'}), 400
+
+    if frame_size <= 0:
+        return jsonify({'error': 'frame_size must be greater than zero'}), 400
+
+    if not isinstance(sequence, str):
+        return jsonify({'error': 'sequence must be a comma-separated string'}), 400
+
+    try:
+        pages = [int(x.strip()) for x in sequence.split(',') if x.strip() != '']
+    except ValueError:
+        return jsonify({'error': 'sequence must contain only integers separated by commas'}), 400
+
+    if len(pages) == 0:
+        return jsonify({'error': 'sequence must contain at least one page number'}), 400
+
+    result = simulate_paging_sequence(pages, algorithm, frame_size)
+    return jsonify(result), 200
 
 @app.route('/initialize', methods=['POST'])
 def initialize_memory():
@@ -214,6 +348,44 @@ def deallocate_memory():
         'memory_blocks': memory_blocks
     }), 200
 
+@app.route('/compact', methods=['POST'])
+def compact_memory():
+    """Compact memory by shifting allocated blocks to the left and merging free space."""
+    global memory_blocks, logs
+    
+    # STEP 1: Separate blocks
+    allocated_blocks = [block for block in memory_blocks if not block['free']]
+    free_blocks = [block for block in memory_blocks if block['free']]
+    
+    # STEP 2: Reassign start addresses for allocated blocks
+    current_address = 0
+    for block in allocated_blocks:
+        block['start'] = current_address
+        current_address += block['size']
+    
+    # STEP 3: Calculate total free memory
+    total_free = sum(block['size'] for block in free_blocks)
+    
+    # STEP 4: Create ONE free block if there's free space
+    if total_free > 0:
+        free_block = {
+            'start': current_address,
+            'size': total_free,
+            'free': True,
+            'process_id': None
+        }
+        memory_blocks = allocated_blocks + [free_block]
+    else:
+        memory_blocks = allocated_blocks
+    
+    # STEP 5: Log the compaction
+    logs.append('Memory compacted: all free space merged')
+    
+    return jsonify({
+        'message': 'Memory compacted successfully',
+        'memory_blocks': memory_blocks
+    }), 200
+
 @app.route('/stats', methods=['GET'])
 def get_stats():
     """Return memory statistics including fragmentation."""
@@ -299,8 +471,8 @@ def process_page_request():
         return jsonify({'error': 'page must be an integer'}), 400
     
     algorithm = data.get('algorithm', 'FIFO').upper()
-    if algorithm not in ['FIFO', 'LRU']:
-        return jsonify({'error': 'algorithm must be FIFO or LRU'}), 400
+    if algorithm not in ['FIFO', 'LRU', 'OPTIMAL']:
+        return jsonify({'error': 'algorithm must be FIFO, LRU, or OPTIMAL'}), 400
     
     # Add to page sequence
     page_sequence.append(page)
@@ -342,6 +514,21 @@ def process_page_request():
                 frames.append(page)
                 lru_stack.append(page)
                 message += f" (replaced page {removed_page})"
+                
+            elif algorithm == 'OPTIMAL':
+                # Use optimal replacement
+                current_index = len(page_sequence) - 1
+                replace_idx = optimal_replace(frames, page_sequence, current_index)
+                removed_page = frames[replace_idx]
+                frames[replace_idx] = page
+                # Update queues for consistency (even though OPTIMAL doesn't use them)
+                if removed_page in fifo_queue:
+                    fifo_queue.remove(removed_page)
+                fifo_queue.append(page)
+                if removed_page in lru_stack:
+                    lru_stack.remove(removed_page)
+                lru_stack.append(page)
+                message = f"Page fault occurred - replaced using Optimal (replaced page {removed_page})"
     
     # Store snapshot in history
     current_frames = frames.copy()
@@ -380,7 +567,7 @@ def get_paging_history():
 
 @app.route('/segmentation/create', methods=['POST'])
 def create_segments():
-    """Create segments with given limits and assign base addresses sequentially."""
+    """Create segments with given limits and assign random non-contiguous base addresses."""
     global segments
     
     data = request.get_json()
@@ -393,7 +580,13 @@ def create_segments():
     # Reset segments
     segments = []
     
-    current_base = 0
+    # Memory bounds (configurable)
+    memory_start = 0
+    memory_end = 1000  # Total memory size
+    
+    # List to track occupied ranges: [(start, end), ...]
+    occupied_ranges = []
+    
     for i, segment_data in enumerate(data['segments']):
         if not isinstance(segment_data, dict) or 'limit' not in segment_data:
             return jsonify({'error': f'Segment {i} must have a limit field'}), 400
@@ -406,19 +599,48 @@ def create_segments():
         if limit <= 0:
             return jsonify({'error': f'Segment {i} limit must be greater than zero'}), 400
         
-        # Create segment with sequential base addresses
+        # Generate random non-overlapping base address
+        max_attempts = 100  # Prevent infinite loops
+        attempts = 0
+        base_assigned = False
+        
+        while attempts < max_attempts and not base_assigned:
+            # Generate random base within memory bounds
+            base = random.randint(memory_start, memory_end - limit)
+            
+            # Check for overlaps with existing segments
+            segment_end = base + limit
+            overlap = False
+            
+            for occupied_start, occupied_end in occupied_ranges:
+                if not (segment_end <= occupied_start or base >= occupied_end):
+                    overlap = True
+                    break
+            
+            if not overlap:
+                # No overlap, assign this base
+                occupied_ranges.append((base, segment_end))
+                base_assigned = True
+            else:
+                # Try a different random base
+                attempts += 1
+        
+        if not base_assigned:
+            return jsonify({'error': f'Could not find non-overlapping space for segment {i} after {max_attempts} attempts'}), 400
+        
+        # Create segment with random base address
         segment = {
             'id': i,
-            'base': current_base,
+            'base': base,
             'limit': limit
         }
         segments.append(segment)
-        
-        # Update base for next segment
-        current_base += limit
+    
+    # Sort segments by ID for display (not by base address)
+    segments.sort(key=lambda x: x['id'])
     
     return jsonify({
-        'message': f'Created {len(segments)} segments successfully',
+        'message': f'Created {len(segments)} segments with random non-contiguous base addresses successfully',
         'segments': segments
     }), 200
 
@@ -439,7 +661,7 @@ def translate_address():
     
     if segment_id < 0 or segment_id >= len(segments):
         return jsonify({
-            'physical_address': None,
+            'valid': False,
             'message': f'Segmentation Fault: Invalid segment {segment_id}'
         }), 400
     
@@ -447,16 +669,26 @@ def translate_address():
     
     if offset < 0 or offset >= segment['limit']:
         return jsonify({
+            'valid': False,
+            'segment': segment_id,
+            'base': segment['base'],
+            'offset': offset,
+            'limit': segment['limit'],
             'physical_address': None,
-            'message': f'Segmentation Fault: Offset {offset} out of bounds for segment {segment_id} (limit: {segment["limit"]})'
+            'message': f'Segmentation Fault! Offset ({offset}) exceeds limit ({segment["limit"]})'
         }), 400
     
     # Valid address translation
     physical_address = segment['base'] + offset
     
     return jsonify({
+        'valid': True,
+        'segment': segment_id,
+        'base': segment['base'],
+        'offset': offset,
+        'limit': segment['limit'],
         'physical_address': physical_address,
-        'message': 'Valid address translation'
+        'message': f'Valid Address! Physical Address = Base ({segment["base"]}) + Offset ({offset}) = {physical_address}'
     }), 200
 
 @app.route('/segmentation/table', methods=['GET'])
