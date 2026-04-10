@@ -1,239 +1,382 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live System Monitor</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            margin: 0;
-            padding: 20px;
-            min-height: 100vh;
-            color: white;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        h1 {
-            text-align: center;
-            color: white;
-            font-size: 2.5rem;
-            margin-bottom: 30px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-        .stats {
-            display: flex;
-            gap: 20px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 15px;
-            padding: 20px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            margin-bottom: 30px;
-            margin-top: 10px;
-        }
-        .stats div {
-            font-size: 1rem;
-            flex: 1;
-            text-align: center;
-        }
-        .stats span {
-            font-weight: bold;
-            color: #10b981;
-            display: block;
-            font-size: 1.5rem;
-            margin-top: 5px;
-        }
-        h2 {
-            text-align: center;
-            color: white;
-            font-size: 2rem;
-            margin-bottom: 20px;
-        }
-        #process-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 15px;
-        }
-        .card {
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
-            padding: 15px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            text-align: center;
-            font-size: 1rem;
-        }
-        .back-btn {
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            margin-bottom: 20px;
-        }
-        .back-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-        .memory-bar {
-            display: flex;
-            height: 40px;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 20px;
-            background: #1e293b;
-        }
-        .block {
-            height: 100%;
-            font-size: 11px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            transition: width 0.5s ease;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-            padding: 0 4px;
-            min-width: 5px;
-        }
-        .block.allocated {
-            background: linear-gradient(135deg, #dc3545, #c82333);
-        }
-        .block.free {
-            background: linear-gradient(135deg, #28a745, #20c997);
-        }
-        .block.others {
-            background: #f59e0b; /* amber */
-            color: black;
-        }
-        .process-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-            margin-top: 20px;
-        }
-        .process-card {
-            background: rgba(30, 41, 59, 0.7);
-            padding: 12px;
-            border-radius: 12px;
-            color: white;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live System Monitor</title>
+
+<style>
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg,#1e3a8a,#7c3aed);
+    margin:0;
+    padding:20px;
+    color:white;
+    display: flex;
+    align-items: flex-start;
+    min-height: 100vh;
+}
+
+.container { 
+    max-width:1200px; 
+    margin:auto; 
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    width: 100%;
+}
+
+h1 { text-align:center; font-size:2.5rem; margin-bottom:0px; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+
+.stats {
+    display:flex;
+    gap:20px;
+    background:rgba(255,255,255,0.1);
+    padding:20px;
+    border-radius:15px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.stats div { flex:1; text-align:center; font-size: 1.1rem; font-weight: 500;}
+.stats span { color:#34d399; font-size:1.6rem; font-weight: bold; display: block; margin-top: 5px;}
+
+@keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
+.stats span { animation: pulse 2s infinite; }
+
+.memory-bar {
+    width: 100%;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    overflow: hidden;
+    background: #0f172a;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.6), 0 8px 25px rgba(0,0,0,0.3);
+}
+
+.block {
+    display:flex; align-items:center; justify-content:center;
+    transition:all 0.4s ease; position: relative;
+    font-size: 13px; font-weight: 600; padding: 0 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.block:hover { transform:scaleY(1.1); z-index: 10; cursor: default; }
+.block.free { background:#22c55e; }
+.block.others { background:#f59e0b; color:black; }
+.block::after {
+    content: ""; position: absolute; top:0; left:0; width:100%; height:100%;
+    background: linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
+    opacity:0; transition:0.3s;
+}
+.block:hover::after { opacity:1; }
+
+.section-title { font-size: 1.5rem; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom:-10px;}
+
+.process-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));
+    gap:15px;
+}
+
+.process-card {
+    background: rgba(15, 23, 42, 0.7);
+    padding: 15px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255,255,255,0.05);
+    display: flex; flex-direction: column; justify-content: space-between;
+}
+
+.process-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.4); background: rgba(30, 41, 59, 0.9); }
+.process-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
+.process-name { font-weight: bold; font-size: 1.05rem; word-break: break-all; }
+.process-count { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px; font-size: 0.8rem; color: #cbd5e1; white-space: nowrap; margin-left: 10px;}
+.process-mem { font-size: 1.2rem; color: #e2e8f0; margin-top:5px;}
+
+/* Modal Styles */
+.modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center;
+    backdrop-filter: blur(5px);
+}
+.modal-content {
+    background: #1e293b; padding: 25px; border-radius: 15px; width: 90%; max-width: 800px;
+    max-height: 85vh; overflow-y: auto; border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+}
+.modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 15px;}
+.close-btn { font-size: 2rem; color: #ef4444; cursor: pointer; line-height: 1; }
+.close-btn:hover { color: #f87171; }
+table { width: 100%; border-collapse: collapse; margin-bottom: 20px; background: rgba(0,0,0,0.2); border-radius: 8px; overflow:hidden;}
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); }
+th { background: rgba(255,255,255,0.05); color: #94a3b8; }
+.address-font { font-family: monospace; color: #34d399; }
+
+.translation-box { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; }
+.input-group { display: flex; gap: 10px; margin-bottom: 15px; align-items: center;}
+select, input { padding: 10px; border-radius: 5px; border: 1px solid #475569; background: #0f172a; color: white; flex:1;}
+button.calc-btn { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; transition:0.3s;}
+button.calc-btn:hover { background: #2563eb; }
+
+</style>
 </head>
+
 <body>
-    <div class="container">
-        <a href="/" class="back-btn">← Back to Simulator</a>
-        <h1>🚀 Live Memory Dashboard</h1>
 
-        <div class="stats">
-            <div>Total: <span id="total-memory"></span></div>
-            <div>Used: <span id="used-memory"></span></div>
-            <div>Free: <span id="free-memory"></span></div>
+<div class="container">
+    <a href="/" style="color: #cbd5e1; text-decoration: none; font-size: 1.1rem;">&larr; Back to Simulator</a>
+    <h1>🚀 Live Memory Dashboard</h1>
+
+    <div class="stats">
+        
+        <div>Total RAM <span id="total">-- GB</span></div>
+        <div>Used RAM <span id="used">-- GB</span></div>
+        <div>Free RAM <span id="free">-- GB</span></div>
+    </div>
+    <div class="stats" style="margin-top: -10px; background: rgba(15, 23, 42, 0.6); border: 1px solid #334155;">
+        <div style="flex: 2; text-align: left; padding-left: 10px;">
+            <strong style="color: #94a3b8; font-size: 1.2rem;">Live Virtual Memory (Swap Space)</strong>
+            <div style="font-size: 0.9rem; color: #cbd5e1; margin-top: 5px;">OS Page Fault Activity</div>
         </div>
-
-        <div id="memory-bar" class="memory-bar"></div>
-
-        <h2>Top Processes</h2>
-        <div id="process-grid" class="process-grid"></div>
+        <div>Used Swap <span id="swap-used" style="color: #f59e0b; font-size: 1.3rem;">-- GB</span></div>
+        <div>Swap In (SIN) <span id="swap-in" style="color: #3b82f6; font-size: 1.3rem;">-- MB</span></div>
+        <div>Swap Out (SOUT) <span id="swap-out" style="color: #ef4444; font-size: 1.3rem;">-- MB</span></div>
     </div>
 
-    <script>
-        async function fetchSystemData() {
-            const res = await fetch('/system-data');
-            const data = await res.json();
+    <div id="memory-bar" class="memory-bar"></div>
 
-            document.getElementById("total-memory").innerText =
-                (data.total_ram / (1024**3)).toFixed(2) + " GB";
+    <div class="section-title">Top App Groups</div>
+    <div id="process-grid" class="process-grid"></div>
+</div>
 
-            document.getElementById("used-memory").innerText =
-                (data.used_ram / (1024**3)).toFixed(2) + " GB";
+<div id="segment-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modal-title" style="margin:0;">Live Segments</h2>
+            <div class="close-btn" onclick="closeModal()">&times;</div>
+        </div>
+        
+        <p style="color:#94a3b8; margin-top:0;">These are the real logical segments loaded in RAM by the OS for this specific application.</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Seg ID</th>
+                    <th>Path / Module</th>
+                    <th>Base Address (Hex)</th>
+                    <th>Limit (Size)</th>
+                </tr>
+            </thead>
+            <tbody id="segment-table-body">
+                </tbody>
+        </table>
 
-            document.getElementById("free-memory").innerText =
-                (data.free_ram / (1024**3)).toFixed(2) + " GB";
-
-            renderMemoryBar(data);
-            renderProcesses(data.processes);
-        }
-
-        function renderProcesses(processes) {
-            const container = document.getElementById("process-grid");
-            container.innerHTML = "";
-
-            processes.forEach(p => {
-                container.innerHTML += `
-                    <div class="process-card">
-                        <strong>${p.name}</strong><br>
-                        ${(p.memory / (1024**2)).toFixed(1)} MB
-                    </div>
-                `;
-            });
-        }
-
-        function renderMemoryBar(data) {
-
-const bar = document.getElementById("memory-bar");
-bar.innerHTML = "";
-
-const total = data.total_ram;
-
-let usedByTop = 0;
-
-data.processes.forEach(p => {
-  const percent = (p.memory / total) * 100;
-  usedByTop += percent;
-
-  const showText = percent > 6;
-
-  bar.innerHTML += `
-    <div class="block allocated"
-         title="${p.name} - ${(p.memory/(1024**2)).toFixed(1)} MB"
-         style="width:${percent}%">
-      ${showText ? p.name : p.name.slice(0,2)}
+        <div class="translation-box">
+            <h3 style="margin-top:0;">Address Translation Test</h3>
+            <div class="input-group">
+                <select id="trans-segment">
+                    </select>
+                <input type="number" id="trans-offset" placeholder="Enter Offset (bytes)..." min="0">
+                <button class="calc-btn" onclick="translateAddress()">Translate</button>
+            </div>
+            <div id="trans-result"></div>
+        </div>
     </div>
-  `;
-});
+</div>
 
-//-----------------------------------
-// ADD "OTHER PROCESSES"
-//-----------------------------------
+<script>
+let isFetching = false;
+let currentSegments = []; // Stores the live segments for the modal
 
-const othersPercent = ((data.used_ram / total) * 100) - usedByTop;
+async function fetchSystemData() {
+    if(isFetching) return;
+    isFetching = true;
 
-if (othersPercent > 1) {
-bar.innerHTML += `
-      <div class="block others"
-           title="Other processes"
-           style="width:${othersPercent}%">
-        Others
-      </div>
-    `;
+    try {
+        const res = await fetch('/system-data');
+        const data = await res.json();
+        // ... (Keep your existing RAM updates) ...
+        document.getElementById("free").textContent = (data.free_ram/(1024**3)).toFixed(2)+" GB";
+
+        // ADD THESE 3 LINES FOR VIRTUAL MEMORY
+        document.getElementById("swap-used").textContent = (data.swap_used/(1024**3)).toFixed(2)+" GB";
+        document.getElementById("swap-in").textContent = (data.swap_in/(1024**2)).toFixed(2)+" MB";
+        document.getElementById("swap-out").textContent = (data.swap_out/(1024**2)).toFixed(2)+" MB";
+        document.getElementById("total").textContent = (data.total_ram/(1024**3)).toFixed(2)+" GB";
+        document.getElementById("used").textContent = (data.used_ram/(1024**3)).toFixed(2)+" GB";
+        document.getElementById("free").textContent = (data.free_ram/(1024**3)).toFixed(2)+" GB";
+
+        renderMemoryBar(data);
+        renderProcesses(data.processes, data.total_ram);
+
+    } catch(err){
+        console.error("Backend connection error:", err);
+    }
+    isFetching = false;
 }
 
-//-----------------------------------
-// ADD FREE MEMORY
-//-----------------------------------
-
-const freePercent = (data.free_ram / total) * 100;
-
-bar.innerHTML += `
-    <div class="block free"
-         title="Free Memory"
-         style="width:${freePercent}%">
-      Free
-    </div>
-  `;
+function getColor(i){
+    const colors=["#ef4444","#ec4899","#8b5cf6","#3b82f6","#06b6d4","#14b8a6", "#84cc16", "#eab308"];
+    return colors[i % colors.length];
 }
 
-        setInterval(fetchSystemData, 1000);
-        fetchSystemData(); // Initial load
-    </script>
+function renderProcesses(processes, totalMemory){
+    const container = document.getElementById("process-grid");
+    const MIN_VISIBLE = 1.5; 
+
+    container.innerHTML = processes.map((p, i) => {
+        let percent = (p.memory / totalMemory) * 100;
+        let cardColor = percent >= MIN_VISIBLE ? getColor(i) : "#f59e0b";
+        let displayMem = p.memory > (1024**3) ? (p.memory/(1024**3)).toFixed(2) + " GB" : (p.memory/(1024**2)).toFixed(1) + " MB";
+        
+        let countText = p.count && p.count > 1 ? `<span class="process-count">${p.count}x</span>` : '';
+
+        // Pass BOTH PID and Name to the Modal
+        return `
+        <div class="process-card" style="border-left: 5px solid ${cardColor};" onclick="openModal(${p.pid}, '${p.name}')">
+            <div class="process-header">
+                <span class="process-name">${p.name}</span>
+                ${countText}
+            </div>
+            <span style="color:#94a3b8; font-size:0.85em">PID: ${p.pid}</span>
+            <div class="process-mem">${displayMem}</div>
+        </div>
+        `;
+    }).join('');
+}
+
+function renderMemoryBar(data){
+    const bar = document.getElementById("memory-bar");
+    const total = data.total_ram;
+    let blocks = [];
+    let usedByTopPercent = 0;
+    const MIN_VISIBLE = 1.5; 
+
+    data.processes.forEach((p, i) => {
+        let percent = (p.memory / total) * 100;
+        if(percent < MIN_VISIBLE) return; 
+
+        usedByTopPercent += percent;
+        let showText = percent > 6; 
+        let displayMem = p.memory > (1024**3) ? (p.memory/(1024**3)).toFixed(2) + " GB" : (p.memory/(1024**2)).toFixed(1) + " MB";
+
+        blocks.push(`
+            <div class="block" style="width:${percent}%; background:${getColor(i)}"
+                title="${p.name} - ${displayMem} (${percent.toFixed(1)}%)">
+                ${showText ? p.name : ""}
+            </div>
+        `);
+    });
+
+    let totalUsedPercent = (data.used_ram / total) * 100;
+    let othersPercent = totalUsedPercent - usedByTopPercent;
+
+    if(othersPercent > 0.5){
+        blocks.push(`
+            <div class="block others" style="width:${othersPercent}%" title="Other Background Apps">
+                ${othersPercent > 5 ? "Others" : ""}
+            </div>
+        `);
+    }
+
+    let freePercent = (data.free_ram / total) * 100;
+    blocks.push(`
+        <div class="block free" style="width:${freePercent}%" title="Free Memory">
+            ${freePercent > 5 ? "Free" : ""}
+        </div>
+    `);
+
+    bar.innerHTML = blocks.join('');
+}
+
+// ==========================================
+// PHASE 3: MODAL & TRANSLATION LOGIC
+// ==========================================
+async function openModal(pid, name) {
+    document.getElementById('segment-modal').style.display = 'flex';
+    document.getElementById('modal-title').textContent = `Loading segments for ${name}...`;
+    document.getElementById('segment-table-body').innerHTML = '<tr><td colspan="4" style="text-align:center;">Fetching live OS data...</td></tr>';
+    document.getElementById('trans-result').innerHTML = '';
+
+    try {
+        const res = await fetch(`/process-details/${pid}`);
+        const data = await res.json();
+        
+        if (data.error) throw new Error(data.error);
+        
+        currentSegments = data.segments;
+        document.getElementById('modal-title').textContent = `Live Segments: ${name} (PID: ${pid})`;
+
+        let rows = currentSegments.map((seg, i) => {
+            // Clean up the file path so it's readable
+            let cleanPath = seg.path ? seg.path.split('\\').pop().split('/').pop() : '[Anonymous Segment]';
+            return `
+            <tr>
+                <td>${i}</td>
+                <td title="${seg.path}">${cleanPath}</td>
+                <td class="address-font">${seg.address}</td>
+                <td>${seg.size} Bytes</td>
+            </tr>`;
+        }).join('');
+
+        document.getElementById('segment-table-body').innerHTML = rows || '<tr><td colspan="4">No segments accessible.</td></tr>';
+
+        // Populate the dropdown for the translation test
+        let opts = currentSegments.map((seg, i) => `<option value="${i}">Segment ${i} (Limit: ${seg.size} B)</option>`).join('');
+        document.getElementById('trans-segment').innerHTML = opts;
+
+    } catch (e) {
+        document.getElementById('modal-title').textContent = `Error loading ${name}`;
+        document.getElementById('segment-table-body').innerHTML = `<tr><td colspan="4" style="color:#ef4444;">Access Denied by Windows/OS. System processes block memory mapping for security. Try clicking a user app like Chrome or Code.exe.</td></tr>`;
+        document.getElementById('trans-segment').innerHTML = '';
+    }
+}
+
+function closeModal() {
+    document.getElementById('segment-modal').style.display = 'none';
+}
+
+function translateAddress() {
+    let segIndex = document.getElementById('trans-segment').value;
+    let offset = parseInt(document.getElementById('trans-offset').value);
+    let resDiv = document.getElementById('trans-result');
+
+    if (isNaN(offset) || !currentSegments[segIndex]) return;
+
+    let seg = currentSegments[segIndex];
+    let limit = seg.size;
+    
+    // Parse the Base Address from the OS string
+    let baseStr = String(seg.address).split('-')[0];
+    let baseDec = parseInt(baseStr, 16) || 0; // Convert OS Hex to Decimal for math
+
+    if (offset >= limit) {
+        resDiv.innerHTML = `
+            <div style="color:#ef4444; background:rgba(239,68,68,0.1); padding:15px; border-radius:8px; border: 1px solid #ef4444; margin-top:10px;">
+                <strong style="font-size:1.2rem;">❌ Segmentation Fault (Trap to OS)</strong><br>
+                The requested offset (<b>${offset} bytes</b>) is strictly greater than the segment's limit (<b>${limit} bytes</b>). Memory protection triggered!
+            </div>`;
+    } else {
+        let physicalDec = baseDec + offset;
+        resDiv.innerHTML = `
+            <div style="color:#10b981; background:rgba(16,185,129,0.1); padding:15px; border-radius:8px; border: 1px solid #10b981; margin-top:10px;">
+                <strong style="font-size:1.2rem;">✅ Valid Address Translation</strong><br>
+                <div style="margin-top:8px; font-family:monospace; font-size:1.1rem;">
+                    Physical Address = Base + Offset<br>
+                    Physical Address = ${baseStr} + ${offset}<br>
+                    <span style="color:white; font-size:1.2rem;">Physical Address = Hex: 0x${physicalDec.toString(16).toUpperCase()}</span>
+                </div>
+            </div>`;
+    }
+}
+
+// Fetch every 2.5 seconds
+setInterval(fetchSystemData, 2500);
+fetchSystemData();
+
+</script>
+
 </body>
 </html>
