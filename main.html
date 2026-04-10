@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dynamic Memory Management Visualizer</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; transition: all 0.2s ease-in-out; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: #333; }
         .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
         
@@ -177,14 +177,32 @@
         .toast.error {
             background: #dc3545;
         }
+
+        /* Go Live Button Styles */
+        .live-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border-radius: 10px;
+            padding: 8px 14px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .live-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div id="toast" class="toast hidden"></div>
-        <header>
+        <header style="position: relative;">
             <h1>Dynamic Memory Management Visualizer</h1>
             <p class="subtitle">Explore different memory allocation strategies</p>
+            <button onclick="goLive()" class="live-btn" style="position: absolute; top: 20px; right: 0;">🚀 Go Live</button>
         </header>
         
         <nav class="nav-tabs">
@@ -442,6 +460,11 @@
     </div>
 
     <script>
+        // Go Live function
+        function goLive() {
+            window.location.href = "/live";
+        }
+
         // Navigation functionality
         document.addEventListener('DOMContentLoaded', function() {
             const navTabs = document.querySelectorAll('.nav-tab');

@@ -1,6 +1,7 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import random
+import psutil
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS to allow frontend cross-origin requests
@@ -697,6 +698,74 @@ def get_segment_table():
     return jsonify({
         'segments': segments
     }), 200
+
+@app.route('/system-data')
+def system_data():
+    import psutil
+
+    ram = psutil.virtual_memory()
+
+    processes = []
+    for proc in psutil.process_iter(['pid','name','memory_info']):
+        try:
+            processes.append({
+                "pid": proc.info['pid'],
+                "name": proc.info['name'],
+                "memory": proc.info['memory_info'].rss
+            })
+        except:
+            continue
+
+    processes = sorted(processes, key=lambda x: x['memory'], reverse=True)[:5]
+
+    return jsonify({
+        "total_ram": ram.total,
+        "used_ram": ram.used,
+        "free_ram": ram.available,
+        "processes": processes
+    })
+
+@app.route('/')
+def index():
+    """Serve the main application page."""
+    return '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Home</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #fff;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <iframe src="main.html" title="Application"></iframe>
+</body>
+</html>
+'''
+
+@app.route('/main.html')
+def main_page():
+    """Serve the main HTML page."""
+    with open('main.html', 'r', encoding='utf-8') as f:
+        return f.read()
+
+@app.route('/live')
+def live_page():
+    return render_template('live.html')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

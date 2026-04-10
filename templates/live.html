@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live System Monitor</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 30px;
+            margin-top: 10px;
+        }
+        .stats div {
+            font-size: 1rem;
+            flex: 1;
+            text-align: center;
+        }
+        .stats span {
+            font-weight: bold;
+            color: #10b981;
+            display: block;
+            font-size: 1.5rem;
+            margin-top: 5px;
+        }
+        h2 {
+            text-align: center;
+            color: white;
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+        #process-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        .card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            text-align: center;
+            font-size: 1rem;
+        }
+        .back-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        .memory-bar {
+            display: flex;
+            height: 40px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+            background: #1e293b;
+        }
+        .block {
+            height: 100%;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: width 0.5s ease;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            padding: 0 4px;
+            min-width: 5px;
+        }
+        .block.allocated {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+        }
+        .block.free {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+        .block.others {
+            background: #f59e0b; /* amber */
+            color: black;
+        }
+        .process-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .process-card {
+            background: rgba(30, 41, 59, 0.7);
+            padding: 12px;
+            border-radius: 12px;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-btn">← Back to Simulator</a>
+        <h1>🚀 Live Memory Dashboard</h1>
+
+        <div class="stats">
+            <div>Total: <span id="total-memory"></span></div>
+            <div>Used: <span id="used-memory"></span></div>
+            <div>Free: <span id="free-memory"></span></div>
+        </div>
+
+        <div id="memory-bar" class="memory-bar"></div>
+
+        <h2>Top Processes</h2>
+        <div id="process-grid" class="process-grid"></div>
+    </div>
+
+    <script>
+        async function fetchSystemData() {
+            const res = await fetch('/system-data');
+            const data = await res.json();
+
+            document.getElementById("total-memory").innerText =
+                (data.total_ram / (1024**3)).toFixed(2) + " GB";
+
+            document.getElementById("used-memory").innerText =
+                (data.used_ram / (1024**3)).toFixed(2) + " GB";
+
+            document.getElementById("free-memory").innerText =
+                (data.free_ram / (1024**3)).toFixed(2) + " GB";
+
+            renderMemoryBar(data);
+            renderProcesses(data.processes);
+        }
+
+        function renderProcesses(processes) {
+            const container = document.getElementById("process-grid");
+            container.innerHTML = "";
+
+            processes.forEach(p => {
+                container.innerHTML += `
+                    <div class="process-card">
+                        <strong>${p.name}</strong><br>
+                        ${(p.memory / (1024**2)).toFixed(1)} MB
+                    </div>
+                `;
+            });
+        }
+
+        function renderMemoryBar(data) {
+
+const bar = document.getElementById("memory-bar");
+bar.innerHTML = "";
+
+const total = data.total_ram;
+
+let usedByTop = 0;
+
+data.processes.forEach(p => {
+  const percent = (p.memory / total) * 100;
+  usedByTop += percent;
+
+  const showText = percent > 6;
+
+  bar.innerHTML += `
+    <div class="block allocated"
+         title="${p.name} - ${(p.memory/(1024**2)).toFixed(1)} MB"
+         style="width:${percent}%">
+      ${showText ? p.name : p.name.slice(0,2)}
+    </div>
+  `;
+});
+
+//-----------------------------------
+// ADD "OTHER PROCESSES"
+//-----------------------------------
+
+const othersPercent = ((data.used_ram / total) * 100) - usedByTop;
+
+if (othersPercent > 1) {
+bar.innerHTML += `
+      <div class="block others"
+           title="Other processes"
+           style="width:${othersPercent}%">
+        Others
+      </div>
+    `;
+}
+
+//-----------------------------------
+// ADD FREE MEMORY
+//-----------------------------------
+
+const freePercent = (data.free_ram / total) * 100;
+
+bar.innerHTML += `
+    <div class="block free"
+         title="Free Memory"
+         style="width:${freePercent}%">
+      Free
+    </div>
+  `;
+}
+
+        setInterval(fetchSystemData, 1000);
+        fetchSystemData(); // Initial load
+    </script>
+</body>
+</html>
