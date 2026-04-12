@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import random
 import psutil
+import time
 from collections import defaultdict # Added this for grouping
 
 app = Flask(__name__)
@@ -23,6 +24,7 @@ history = []
 
 # Global variables for segmentation simulation
 segments = []
+simulation_active = 0
 
 def optimal_replace(frames, page_sequence, current_index):
     """Find the index of the frame to replace using Optimal algorithm."""
@@ -121,6 +123,12 @@ def simulate_paging_sequence(pages, algorithm, frame_size):
         'disk': disk,
         'sequence': page_sequence
     }
+
+@app.route('/simulate-fault', methods=['POST'])
+def trigger_fault():
+    global simulation_active
+    simulation_active = 5  # The "spike" will last for 5 data-fetch cycles
+    return jsonify({"message": "Simulation triggered"})
 
 @app.route('/paging/batch', methods=['POST'])
 def batch_paging():
@@ -705,46 +713,67 @@ def get_segment_table():
 # ==========================================
 @app.route('/system-data')
 def system_data():
+    global simulation_active
     ram = psutil.virtual_memory()
-
-    # Dictionary to group processes by their name
+    swap = psutil.swap_memory()
     process_group = {}
-
-    for proc in psutil.process_iter(['pid', 'name', 'memory_info']):
+    # Dictionary to group processes by their name
+    for proc in psutil.process_iter(['pid', 'name', 'memory_info', 'cpu_percent', 'num_threads', 'create_time']):
         try:
             name = proc.info['name']
             mem = proc.info['memory_info'].rss
             pid = proc.info['pid']
+            cpu = proc.info['cpu_percent'] or 0.0
+            threads = proc.info['num_threads'] or 0
+            # Calculate uptime in seconds
+            uptime = int(time.time() - proc.info['create_time'])
 
-            # If we haven't seen this app name yet, add it
             if name not in process_group:
-                process_group[name] = {"memory": mem, "count": 1, "pid": pid, "max_mem": mem}
+                process_group[name] = {
+                    "memory": mem, 
+                    "count": 1, 
+                    "pid": pid, 
+                    "max_mem": mem,
+                    "cpu": cpu,
+                    "threads": threads,
+                    "uptime": uptime
+                }
             else:
-                # If we have, add to its total memory and increment the count
                 process_group[name]["memory"] += mem
                 process_group[name]["count"] += 1
-                
-                # Keep the PID of the specific instance that is using the most memory.
-                # We need this valid PID so the frontend can query /process-details/<pid> later!
+                process_group[name]["cpu"] += cpu
+                process_group[name]["threads"] += threads
+                # Keep the longest uptime for the group
+                if uptime > process_group[name]["uptime"]:
+                    process_group[name]["uptime"] = uptime
                 if mem > process_group[name]["max_mem"]:
                     process_group[name]["max_mem"] = mem
                     process_group[name]["pid"] = pid
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             continue
 
-    # Convert the grouped dictionary back into a list format for the frontend
+    # Convert to list and sort
     processes = []
     for name, info in process_group.items():
         processes.append({
             "name": name,
             "memory": info["memory"],
             "count": info["count"],
-            "pid": info["pid"] 
+            "pid": info["pid"],
+            "cpu": round(info["cpu"], 1),
+            "threads": info["threads"],
+            "uptime": info["uptime"]
         })
 
-    # Sort by the grouped memory total, and grab the Top 10
     processes = sorted(processes, key=lambda x: x['memory'], reverse=True)[:10]
-
+    # If simulation is active, inject fake spikes
+    s_in = swap.sin
+    s_out = swap.sout
+    
+    if simulation_active > 0:
+        s_in = random.randint(50, 200) * (1024**2)  # Fake 50-200 MB Swap In
+        s_out = random.randint(20, 80) * (1024**2)  # Fake 20-80 MB Swap Out
+        simulation_active -= 1 # Countdown until it returns to real 0.00
     # ADD THIS: Fetch live swap/virtual memory data
     swap = psutil.swap_memory()
 
@@ -756,8 +785,8 @@ def system_data():
         
         # ADD THIS TO THE RETURN JSON
         "swap_used": swap.used,
-        "swap_in": swap.sin,    # Total bytes swapped in from disk
-        "swap_out": swap.sout   # Total bytes swapped out to disk
+        "swap_in": s_in,    # Total bytes swapped in from disk
+        "swap_out": s_out   # Total bytes swapped out to disk
     })
 @app.route('/process-details/<int:pid>')
 def process_details(pid):

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live System Monitor</title>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -120,6 +120,18 @@ select, input { padding: 10px; border-radius: 5px; border: 1px solid #475569; ba
 button.calc-btn { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; transition:0.3s;}
 button.calc-btn:hover { background: #2563eb; }
 
+/* NEW: Graph Container perfectly sized */
+.graph-container {
+    background: rgba(15, 23, 42, 0.6);
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    margin-top: -10px;
+    height: 180px; /* Forces the chart to be a nice readable height */
+    width: 100%;
+    box-sizing: border-box;
+}
+
 </style>
 </head>
 
@@ -130,19 +142,26 @@ button.calc-btn:hover { background: #2563eb; }
     <h1>🚀 Live Memory Dashboard</h1>
 
     <div class="stats">
-        
         <div>Total RAM <span id="total">-- GB</span></div>
         <div>Used RAM <span id="used">-- GB</span></div>
         <div>Free RAM <span id="free">-- GB</span></div>
     </div>
+    
     <div class="stats" style="margin-top: -10px; background: rgba(15, 23, 42, 0.6); border: 1px solid #334155;">
         <div style="flex: 2; text-align: left; padding-left: 10px;">
             <strong style="color: #94a3b8; font-size: 1.2rem;">Live Virtual Memory (Swap Space)</strong>
+            <button onclick="triggerSimulation()" class="calc-btn" style="padding: 5px 10px; font-size: 0.8rem; margin-left: 15px; background: #ef4444;">
+                ⚠️ Simulate Memory Pressure
+            </button>
             <div style="font-size: 0.9rem; color: #cbd5e1; margin-top: 5px;">OS Page Fault Activity</div>
         </div>
         <div>Used Swap <span id="swap-used" style="color: #f59e0b; font-size: 1.3rem;">-- GB</span></div>
         <div>Swap In (SIN) <span id="swap-in" style="color: #3b82f6; font-size: 1.3rem;">-- MB</span></div>
         <div>Swap Out (SOUT) <span id="swap-out" style="color: #ef4444; font-size: 1.3rem;">-- MB</span></div>
+    </div>
+
+    <div class="graph-container">
+        <canvas id="swapChart"></canvas>
     </div>
 
     <div id="memory-bar" class="memory-bar"></div>
@@ -170,14 +189,13 @@ button.calc-btn:hover { background: #2563eb; }
                 </tr>
             </thead>
             <tbody id="segment-table-body">
-                </tbody>
+            </tbody>
         </table>
 
         <div class="translation-box">
             <h3 style="margin-top:0;">Address Translation Test</h3>
             <div class="input-group">
-                <select id="trans-segment">
-                    </select>
+                <select id="trans-segment"></select>
                 <input type="number" id="trans-offset" placeholder="Enter Offset (bytes)..." min="0">
                 <button class="calc-btn" onclick="translateAddress()">Translate</button>
             </div>
@@ -188,7 +206,48 @@ button.calc-btn:hover { background: #2563eb; }
 
 <script>
 let isFetching = false;
-let currentSegments = []; // Stores the live segments for the modal
+let currentSegments = []; 
+
+// --- CHART SETUP ---
+const ctx = document.getElementById('swapChart').getContext('2d');
+const swapChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: Array(25).fill(''), // Extended to 25 ticks
+        datasets: [
+            {
+                label: 'Swap In (SIN) MB',
+                borderColor: '#3b82f6', 
+                backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0, // Removes dots for a smooth heartbeat look
+                data: Array(25).fill(0)
+            },
+            {
+                label: 'Swap Out (SOUT) MB',
+                borderColor: '#ef4444', 
+                backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0, 
+                data: Array(25).fill(0)
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false, // Allows it to fit the fixed 180px height
+        animation: { duration: 0 }, 
+        scales: {
+            y: { beginAtZero: true, suggestedMax: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+            x: { grid: { display: false } }
+        },
+        plugins: { legend: { labels: { color: '#e2e8f0', boxWidth: 12 } } }
+    }
+});
 
 async function fetchSystemData() {
     if(isFetching) return;
@@ -197,16 +256,33 @@ async function fetchSystemData() {
     try {
         const res = await fetch('/system-data');
         const data = await res.json();
-        // ... (Keep your existing RAM updates) ...
-        document.getElementById("free").textContent = (data.free_ram/(1024**3)).toFixed(2)+" GB";
-
-        // ADD THESE 3 LINES FOR VIRTUAL MEMORY
-        document.getElementById("swap-used").textContent = (data.swap_used/(1024**3)).toFixed(2)+" GB";
-        document.getElementById("swap-in").textContent = (data.swap_in/(1024**2)).toFixed(2)+" MB";
-        document.getElementById("swap-out").textContent = (data.swap_out/(1024**2)).toFixed(2)+" MB";
+        
         document.getElementById("total").textContent = (data.total_ram/(1024**3)).toFixed(2)+" GB";
         document.getElementById("used").textContent = (data.used_ram/(1024**3)).toFixed(2)+" GB";
         document.getElementById("free").textContent = (data.free_ram/(1024**3)).toFixed(2)+" GB";
+
+        document.getElementById("swap-used").textContent = (data.swap_used/(1024**3)).toFixed(2)+" GB";
+        
+        let sinMB = data.swap_in / (1024**2);
+        let soutMB = data.swap_out / (1024**2);
+        
+        // // Add realistic "ambient OS noise" so the graph breathes when idle
+        // if (sinMB === 0 && soutMB === 0) {
+        //     sinMB = Math.random() * 0.8;  // Micro-fluctuations (0 to 0.8 MB)
+        //     soutMB = Math.random() * 0.5; // Micro-fluctuations (0 to 0.5 MB)
+        // }
+        
+        document.getElementById("swap-in").textContent = sinMB.toFixed(2)+" MB";
+        document.getElementById("swap-out").textContent = soutMB.toFixed(2)+" MB";
+        
+        // Update Graph Data
+        swapChart.data.datasets[0].data.shift();
+        swapChart.data.datasets[0].data.push(sinMB);
+        
+        swapChart.data.datasets[1].data.shift();
+        swapChart.data.datasets[1].data.push(soutMB);
+        
+        swapChart.update();
 
         renderMemoryBar(data);
         renderProcesses(data.processes, data.total_ram);
@@ -215,6 +291,15 @@ async function fetchSystemData() {
         console.error("Backend connection error:", err);
     }
     isFetching = false;
+}
+
+async function triggerSimulation() {
+    try {
+        await fetch('/simulate-fault', { method: 'POST' });
+        console.log("Injecting fake page faults...");
+    } catch(err) {
+        console.error(err);
+    }
 }
 
 function getColor(i){
@@ -228,20 +313,29 @@ function renderProcesses(processes, totalMemory){
 
     container.innerHTML = processes.map((p, i) => {
         let percent = (p.memory / totalMemory) * 100;
-        let cardColor = percent >= MIN_VISIBLE ? getColor(i) : "#f59e0b";
+        let cardColor = percent >= 1.5 ? getColor(i) : "#f59e0b";
         let displayMem = p.memory > (1024**3) ? (p.memory/(1024**3)).toFixed(2) + " GB" : (p.memory/(1024**2)).toFixed(1) + " MB";
         
-        let countText = p.count && p.count > 1 ? `<span class="process-count">${p.count}x</span>` : '';
+        // Format Uptime (Seconds to Mins/Hours)
+        let uptimeStr = p.uptime > 3600 ? Math.floor(p.uptime/3600) + "h " + Math.floor((p.uptime%3600)/60) + "m" : Math.floor(p.uptime/60) + "m";
 
-        // Pass BOTH PID and Name to the Modal
         return `
         <div class="process-card" style="border-left: 5px solid ${cardColor};" onclick="openModal(${p.pid}, '${p.name}')">
             <div class="process-header">
                 <span class="process-name">${p.name}</span>
-                ${countText}
+                ${p.count > 1 ? `<span class="process-count">${p.count}x</span>` : ''}
             </div>
-            <span style="color:#94a3b8; font-size:0.85em">PID: ${p.pid}</span>
+            
+            <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.85rem; color: #94a3b8;">
+                <span>CPU: <b style="color:#ef4444">${p.cpu}%</b></span>
+                <span>Threads: <b>${p.threads}</b></span>
+            </div>
+            
             <div class="process-mem">${displayMem}</div>
+            
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 5px;">
+                ⏱️ Active for ${uptimeStr}
+            </div>
         </div>
         `;
     }).join('');
@@ -291,9 +385,6 @@ function renderMemoryBar(data){
     bar.innerHTML = blocks.join('');
 }
 
-// ==========================================
-// PHASE 3: MODAL & TRANSLATION LOGIC
-// ==========================================
 async function openModal(pid, name) {
     document.getElementById('segment-modal').style.display = 'flex';
     document.getElementById('modal-title').textContent = `Loading segments for ${name}...`;
@@ -310,7 +401,6 @@ async function openModal(pid, name) {
         document.getElementById('modal-title').textContent = `Live Segments: ${name} (PID: ${pid})`;
 
         let rows = currentSegments.map((seg, i) => {
-            // Clean up the file path so it's readable
             let cleanPath = seg.path ? seg.path.split('\\').pop().split('/').pop() : '[Anonymous Segment]';
             return `
             <tr>
@@ -323,7 +413,6 @@ async function openModal(pid, name) {
 
         document.getElementById('segment-table-body').innerHTML = rows || '<tr><td colspan="4">No segments accessible.</td></tr>';
 
-        // Populate the dropdown for the translation test
         let opts = currentSegments.map((seg, i) => `<option value="${i}">Segment ${i} (Limit: ${seg.size} B)</option>`).join('');
         document.getElementById('trans-segment').innerHTML = opts;
 
@@ -347,10 +436,8 @@ function translateAddress() {
 
     let seg = currentSegments[segIndex];
     let limit = seg.size;
-    
-    // Parse the Base Address from the OS string
     let baseStr = String(seg.address).split('-')[0];
-    let baseDec = parseInt(baseStr, 16) || 0; // Convert OS Hex to Decimal for math
+    let baseDec = parseInt(baseStr, 16) || 0; 
 
     if (offset >= limit) {
         resDiv.innerHTML = `
@@ -372,8 +459,7 @@ function translateAddress() {
     }
 }
 
-// Fetch every 2.5 seconds
-setInterval(fetchSystemData, 2500);
+setInterval(fetchSystemData, 2000); // Poll every 2 seconds
 fetchSystemData();
 
 </script>
