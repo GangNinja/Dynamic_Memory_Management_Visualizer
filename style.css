@@ -17,6 +17,10 @@ body {
 .simulator-section.active {
     display: block;
 }
+.about-tab.active {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+}
 .memory-block {
     transition: all 0.3s ease;
 }
