@@ -9,15 +9,191 @@ function switchSection(sectionId) {
         item.classList.remove('active');
     });
     document.getElementById(`nav-${sectionId}`).classList.add('active');
+}
+
+// --- About Section Tabs ---
+function switchAboutTab(tabId) {
+    document.querySelectorAll('.about-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+    document.getElementById(`about-${tabId}`).classList.remove('hidden');
     
-    if (sectionId === 'dashboard') {
-        renderCharts();
+    document.querySelectorAll('.about-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.getElementById(`tab-${tabId}`).classList.add('active');
+}
+
+// --- Demo Functions ---
+async function showDemoExplanation(text, duration = 3000) {
+    const overlay = document.getElementById('demo-explanation');
+    const textEl = document.getElementById('demo-text');
+    textEl.innerText = text;
+    overlay.classList.remove('hidden');
+    overlay.classList.add('animate-bounce-in'); // Optional: add a simple animation class if defined
+    await new Promise(r => setTimeout(r, duration));
+    overlay.classList.add('hidden');
+}
+
+async function runAllocationDemo() {
+    const algo = document.getElementById('alloc-algo').value;
+    resetAllocation();
+    await showDemoExplanation(`Starting ${algo} Demo. Resetting memory...`, 2000);
+    
+    // Setup a specific fragmented state to highlight differences
+    // Total 1024: [Sys: 100] [Hole1: 150] [Drv: 100] [Hole2: 350] [Cache: 100] [Hole3: 120] [Data: 104]
+    memoryBlocks = [
+        { id: 'System', size: 100, start: 0, end: 100, status: 'allocated' },
+        { id: null, size: 150, start: 100, end: 250, status: 'free' },
+        { id: 'Drivers', size: 100, start: 250, end: 350, status: 'allocated' },
+        { id: null, size: 350, start: 350, end: 700, status: 'free' },
+        { id: 'Cache', size: 100, start: 700, end: 800, status: 'allocated' },
+        { id: null, size: 120, start: 800, end: 920, status: 'free' },
+        { id: 'Data', size: 104, start: 920, end: 1024, status: 'allocated' }
+    ];
+    updateAllocationUI();
+    await showDemoExplanation("Memory fragmented. We have holes of 150KB, 350KB, and 120KB.", 3500);
+
+    const requestSize = 115;
+    document.getElementById('proc-id').value = "Demo_P";
+    document.getElementById('proc-size').value = requestSize;
+    
+    if (algo === 'First Fit') {
+        await showDemoExplanation(`First Fit: Searching from the start. First hole > ${requestSize}KB is the 150KB hole.`, 4000);
+        allocateProcess();
+    } else if (algo === 'Best Fit') {
+        await showDemoExplanation(`Best Fit: Searching for the SMALLEST hole > ${requestSize}KB. That's the 120KB hole.`, 4000);
+        allocateProcess();
+    } else if (algo === 'Worst Fit') {
+        await showDemoExplanation(`Worst Fit: Searching for the LARGEST hole. That's the 350KB hole.`, 4000);
+        allocateProcess();
+    } else if (algo === 'Next Fit') {
+        await showDemoExplanation("Next Fit: First, let's allocate something to set the 'last position' pointer...", 3000);
+        // Allocate something in the first hole to move the pointer
+        document.getElementById('proc-id').value = "Setup_P";
+        document.getElementById('proc-size').value = 50;
+        allocateProcess();
+        await new Promise(r => setTimeout(r, 1000));
+        
+        await showDemoExplanation(`Now, Next Fit starts searching AFTER Setup_P. It will skip the rest of the 150KB hole and look at the 350KB hole.`, 5000);
+        document.getElementById('proc-id').value = "Demo_P";
+        document.getElementById('proc-size').value = requestSize;
+        allocateProcess();
+    }
+    
+    await new Promise(r => setTimeout(r, 1000));
+    
+    // Final Step: Demonstrate External Fragmentation
+    await showDemoExplanation("Now, let's see EXTERNAL FRAGMENTATION. Requesting 400KB...", 4000);
+    document.getElementById('proc-id').value = "Frag_P";
+    document.getElementById('proc-size').value = 400;
+    allocateProcess();
+    
+    await new Promise(r => setTimeout(r, 2000));
+    await showDemoExplanation("External fragmentation happens when total free memory is enough, but not contiguous.", 4000);
+    
+    await showDemoExplanation("To fix this, we use COMPACTION to shuffle blocks and combine free space...", 4000);
+    compactMemory();
+    await new Promise(r => setTimeout(r, 1500));
+    
+    await showDemoExplanation("Now that memory is contiguous, we can finally allocate the 400KB process!", 4000);
+    allocateProcess();
+    
+    await new Promise(r => setTimeout(r, 1000));
+    await showDemoExplanation("Demo complete! You've seen allocation strategies, fragmentation, and compaction.", 5000);
+}
+
+async function runPagingDemo() {
+    const algo = document.getElementById('paging-algo').value;
+    resetPaging();
+    await showDemoExplanation(`Starting ${algo} Paging Demo with 3 Physical Frames...`, 2500);
+    
+    document.getElementById('paging-frames-input').value = 3;
+    resetPaging();
+    
+    let sequence = (algo === 'FIFO') ? [1, 2, 3, 4, 1] : [1, 2, 3, 1, 4];
+    
+    for (const page of sequence) {
+        let explanation = `Accessing Page ${page}. `;
+        const isHit = pagingState.frames.includes(page);
+        
+        if (isHit) {
+            explanation += "PAGE HIT! It's already in memory.";
+        } else {
+            explanation += "PAGE FAULT! ";
+            if (pagingState.frames.length >= 3) {
+                explanation += (algo === 'FIFO') 
+                    ? `Replacing the OLDEST page (FIFO).` 
+                    : `Replacing the LEAST RECENTLY USED page.`;
+            } else {
+                explanation += "Loading into empty frame.";
+            }
+        }
+        
+        await showDemoExplanation(explanation, 3000);
+        accessPage(page, false);
+        await new Promise(r => setTimeout(r, 500));
+    }
+    
+    await showDemoExplanation("Paging demo complete.", 2000);
+}
+
+async function runStackHeapDemo() {
+    stack = [{ id: 1, label: 'main()', size: 64 }];
+    heap = [];
+    updateStackHeapUI();
+    await showDemoExplanation("Stack vs Heap Demo: main() function starts on the Stack.", 3000);
+    
+    await showDemoExplanation("Calling render()... A new frame is pushed to the Stack.", 3000);
+    document.getElementById('stack-input').value = "render()";
+    pushStack();
+    await new Promise(r => setTimeout(r, 1000));
+    
+    await showDemoExplanation("render() needs to store a large image. Allocating on the Heap...", 3000);
+    document.getElementById('heap-input').value = "Image_Data";
+    mallocHeap();
+    await new Promise(r => setTimeout(r, 1000));
+    
+    await showDemoExplanation("render() finishes. Its frame is popped from the Stack.", 3000);
+    popStack();
+    await new Promise(r => setTimeout(r, 1000));
+    
+    await showDemoExplanation("Notice: The Heap data stays until manually freed or GC'd!", 4000);
+}
+
+async function runGCDemo() {
+    const strategy = document.getElementById('gc-strategy').value;
+    await showDemoExplanation(`Starting ${strategy} Garbage Collection Demo...`, 2500);
+    
+    gcObjects = [
+        { id: 1, label: 'Root', x: 100, y: 100, isRoot: true, isReachable: true, marked: false, refs: [2], refCount: 0, selected: false },
+        { id: 2, label: 'Obj_A', x: 300, y: 150, isRoot: false, isReachable: true, marked: false, refs: [3], refCount: 1, selected: false },
+        { id: 3, label: 'Obj_B', x: 500, y: 100, isRoot: false, isReachable: true, marked: false, refs: [], refCount: 1, selected: false }
+    ];
+    recalculateReachability();
+    updateGCUI();
+    
+    await showDemoExplanation("Initial state: Root -> Obj_A -> Obj_B. All are reachable.", 3500);
+    
+    await showDemoExplanation("The program removes the reference from Root to Obj_A.", 3500);
+    gcObjects[0].refs = [];
+    recalculateReachability();
+    updateGCUI();
+    await new Promise(r => setTimeout(r, 1000));
+    
+    if (strategy === 'Mark and Sweep') {
+        await showDemoExplanation("Mark & Sweep: Running... It will find Obj_A and Obj_B are unreachable.", 4000);
+        runGC();
+    } else {
+        await showDemoExplanation("Reference Counting: Obj_A's count dropped to 0. It is reclaimed immediately.", 4000);
+        runGC();
     }
 }
 
 // --- Allocation Simulator ---
 let totalMemory = 1024;
 let memoryBlocks = [{ id: null, size: 1024, start: 0, end: 1024, status: 'free' }];
+let lastAllocIndex = 0; // For Next Fit
 let processQueue = [];
 let allocHistory = [];
 let redoHistory = [];
@@ -124,8 +300,12 @@ function updateAllocationUI() {
     
     // Stats
     const allocatedSize = memoryBlocks.filter(b => b.status === 'allocated').reduce((acc, b) => acc + b.size, 0);
-    const freeSize = memoryBlocks.filter(b => b.status === 'free').reduce((acc, b) => acc + b.size, 0);
-    const fragSize = memoryBlocks.filter(b => b.status === 'fragmented').reduce((acc, b) => acc + b.size, 0);
+    const freeBlocks = memoryBlocks.filter(b => b.status === 'free');
+    const freeSize = freeBlocks.reduce((acc, b) => acc + b.size, 0);
+    
+    // External Fragmentation: Total free memory that is not in the largest contiguous block
+    const maxFreeBlock = freeBlocks.length > 0 ? Math.max(...freeBlocks.map(b => b.size)) : 0;
+    const fragSize = freeBlocks.length > 1 ? (freeSize - maxFreeBlock) : 0;
     
     document.getElementById('stat-utilization').innerText = `${Math.round((allocatedSize / totalMemory) * 100)}%`;
     document.getElementById('stat-free').innerText = `${freeSize} KB`;
@@ -182,11 +362,20 @@ function allocateProcess() {
         freeBlocks.sort((a, b) => b.size - a.size);
         targetIndex = freeBlocks.length > 0 ? freeBlocks[0].index : -1;
     } else if (algo === 'Next Fit') {
-        // Simple implementation: find first after last allocation (simplified to first fit for now)
-        targetIndex = freeBlocks.length > 0 ? freeBlocks[0].index : -1;
+        // Find first suitable block starting from lastAllocIndex
+        let found = false;
+        for (let i = 0; i < memoryBlocks.length; i++) {
+            let idx = (lastAllocIndex + i) % memoryBlocks.length;
+            if (memoryBlocks[idx].status === 'free' && memoryBlocks[idx].size >= size) {
+                targetIndex = idx;
+                found = true;
+                break;
+            }
+        }
     }
     
     if (targetIndex !== -1) {
+        lastAllocIndex = targetIndex;
         const block = memoryBlocks[targetIndex];
         const remainingSize = block.size - size;
         
@@ -210,7 +399,23 @@ function allocateProcess() {
 
         updateAllocationUI();
     } else {
-        alert("No suitable block found for allocation!");
+        const totalFree = memoryBlocks.filter(b => b.status === 'free').reduce((acc, b) => acc + b.size, 0);
+        if (totalFree >= size) {
+            showDemoExplanation(`EXTERNAL FRAGMENTATION! Total free memory (${totalFree}KB) is enough, but no single block can fit ${size}KB. Try Compaction!`, 5000);
+            
+            // Temporarily highlight free blocks as fragmented
+            const originalBlocks = JSON.parse(JSON.stringify(memoryBlocks));
+            memoryBlocks.forEach(b => {
+                if (b.status === 'free') b.status = 'fragmented';
+            });
+            updateAllocationUI();
+            setTimeout(() => {
+                memoryBlocks = originalBlocks;
+                updateAllocationUI();
+            }, 3000);
+        } else {
+            alert("Insufficient total memory for this process!");
+        }
     }
 }
 
@@ -991,64 +1196,6 @@ async function runGC() {
     btn.disabled = false;
 }
 
-// --- Dashboard Charts ---
-let efficiencyChart, fragmentationChart;
-
-function renderCharts() {
-    const ctx1 = document.getElementById('efficiencyChart').getContext('2d');
-    const ctx2 = document.getElementById('fragmentationChart').getContext('2d');
-    
-    if (efficiencyChart) efficiencyChart.destroy();
-    if (fragmentationChart) fragmentationChart.destroy();
-    
-    efficiencyChart = new Chart(ctx1, {
-        type: 'bar',
-        data: {
-            labels: ['First Fit', 'Best Fit', 'Worst Fit', 'Next Fit'],
-            datasets: [{
-                label: 'Allocation Speed (ms)',
-                data: [12, 45, 38, 15],
-                backgroundColor: '#3b82f6'
-            }, {
-                label: 'Memory Utilization (%)',
-                data: [78, 92, 65, 74],
-                backgroundColor: '#10b981'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
-                x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
-            },
-            plugins: { legend: { labels: { color: '#f8fafc' } } }
-        }
-    });
-    
-    fragmentationChart = new Chart(ctx2, {
-        type: 'line',
-        data: {
-            labels: ['0s', '10s', '20s', '30s', '40s', '50s'],
-            datasets: [{
-                label: 'External Fragmentation (KB)',
-                data: [0, 128, 256, 192, 320, 256],
-                borderColor: '#ef4444',
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
-                x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
-            },
-            plugins: { legend: { labels: { color: '#f8fafc' } } }
-        }
-    });
-}
-
 // Initialize
 window.onload = () => {
     totalMemory = parseInt(document.getElementById('total-memory-input').value) || 1024;
@@ -1063,6 +1210,11 @@ window.onload = () => {
 // Expose functions to window for HTML onclick handlers
 Object.assign(window, {
     switchSection,
+    switchAboutTab,
+    runAllocationDemo,
+    runPagingDemo,
+    runStackHeapDemo,
+    runGCDemo,
     undoAllocation,
     redoAllocation,
     allocateProcess,
