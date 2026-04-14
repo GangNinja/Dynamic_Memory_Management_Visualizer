@@ -177,6 +177,14 @@ python app.py
 
 ---
 
+# Author
+
+Diwakar Kaushik
+Vallabhaneni Lakshmi Narasimha
+Bellamkonda Likith
+
+---
+
 ## 📜 License
 
 This project is open source and available for educational use.
