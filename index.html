@@ -46,8 +46,8 @@
             <button onclick="switchSection('gc')" class="sidebar-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium text-slate-400 hover:bg-slate-800/50 transition-all" id="nav-gc">
                 <i data-lucide="trash-2" size="18"></i> Garbage Collection
             </button>
-            <button onclick="switchSection('dashboard')" class="sidebar-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium text-slate-400 hover:bg-slate-800/50 transition-all" id="nav-dashboard">
-                <i data-lucide="bar-chart-3" size="18"></i> Dashboard
+            <button onclick="switchSection('about')" class="sidebar-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium text-slate-400 hover:bg-slate-800/50 transition-all" id="nav-about">
+                <i data-lucide="info" size="18"></i> About
             </button>
         </nav>
         
@@ -74,6 +74,9 @@
                         <p class="text-slate-400 mt-1">Simulate First Fit, Best Fit, Worst Fit, and Next Fit algorithms.</p>
                     </div>
                     <div class="flex gap-2">
+                        <button onclick="runAllocationDemo()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-blue-900/20">
+                            <i data-lucide="play-circle" size="18"></i> Run Demo
+                        </button>
                         <button onclick="undoAllocation()" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 transition-all" title="Undo">
                             <i data-lucide="undo-2" size="18"></i>
                         </button>
@@ -200,6 +203,9 @@
                         <h2 class="text-3xl font-bold">Paging Simulation</h2>
                         <p class="text-slate-400 mt-1">Visualize logical to physical memory mapping and page replacement.</p>
                     </div>
+                    <button onclick="runPagingDemo()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-blue-900/20">
+                        <i data-lucide="play-circle" size="18"></i> Run Demo
+                    </button>
                 </div>
 
                 <!-- Paging Stats -->
@@ -357,6 +363,9 @@
                         <h2 class="text-3xl font-bold">Stack vs Heap</h2>
                         <p class="text-slate-400 mt-1">Visualize how the call stack and dynamic heap grow in memory.</p>
                     </div>
+                    <button onclick="runStackHeapDemo()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-blue-900/20">
+                        <i data-lucide="play-circle" size="18"></i> Run Demo
+                    </button>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[700px]">
@@ -414,6 +423,9 @@
                         <h2 class="text-3xl font-bold">Garbage Collection</h2>
                         <p class="text-slate-400 mt-1">Visualize Mark & Sweep and Reference Counting algorithms.</p>
                     </div>
+                    <button onclick="runGCDemo()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-blue-900/20">
+                        <i data-lucide="play-circle" size="18"></i> Run Demo
+                    </button>
                 </div>
 
                 <div class="flex flex-wrap gap-6 items-center justify-between bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
@@ -470,46 +482,132 @@
                 </div>
             </section>
 
-            <!-- Dashboard Section -->
-            <section id="dashboard-section" class="simulator-section space-y-8">
+            <!-- About Section -->
+            <section id="about-section" class="simulator-section space-y-8">
                 <div class="flex justify-between items-center">
                     <div>
-                        <h2 class="text-3xl font-bold">Algorithm Comparison</h2>
-                        <p class="text-slate-400 mt-1">Performance and efficiency metrics for memory management techniques.</p>
+                        <h2 class="text-3xl font-bold">About Memory Management</h2>
+                        <p class="text-slate-400 mt-1">Learn about the core concepts of operating system memory management.</p>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="bg-slate-800/50 border border-slate-700 p-8 rounded-3xl shadow-xl">
-                        <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
-                            <i data-lucide="bar-chart-2" class="text-blue-400"></i> Allocation Efficiency
-                        </h3>
-                        <div class="h-64">
-                            <canvas id="efficiencyChart"></canvas>
-                        </div>
+                <div class="bg-slate-800/50 border border-slate-700 rounded-3xl overflow-hidden shadow-2xl">
+                    <div class="flex border-b border-slate-700 bg-slate-800/80 overflow-x-auto">
+                        <button onclick="switchAboutTab('allocation')" class="about-tab active px-6 py-4 text-sm font-bold text-slate-400 hover:text-white transition-all border-b-2 border-transparent" id="tab-allocation">Allocation</button>
+                        <button onclick="switchAboutTab('paging')" class="about-tab px-6 py-4 text-sm font-bold text-slate-400 hover:text-white transition-all border-b-2 border-transparent" id="tab-paging">Paging</button>
+                        <button onclick="switchAboutTab('stackheap')" class="about-tab px-6 py-4 text-sm font-bold text-slate-400 hover:text-white transition-all border-b-2 border-transparent" id="tab-stackheap">Stack vs Heap</button>
+                        <button onclick="switchAboutTab('gc')" class="about-tab px-6 py-4 text-sm font-bold text-slate-400 hover:text-white transition-all border-b-2 border-transparent" id="tab-gc">Garbage Collection</button>
                     </div>
-                    <div class="bg-slate-800/50 border border-slate-700 p-8 rounded-3xl shadow-xl">
-                        <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
-                            <i data-lucide="trending-down" class="text-emerald-400"></i> Fragmentation Rates
-                        </h3>
-                        <div class="h-64">
-                            <canvas id="fragmentationChart"></canvas>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl">
-                        <h4 class="font-bold text-blue-400 mb-2">First Fit</h4>
-                        <p class="text-sm text-slate-400">Fastest allocation but can lead to many small holes at the beginning of memory.</p>
-                    </div>
-                    <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl">
-                        <h4 class="font-bold text-emerald-400 mb-2">Best Fit</h4>
-                        <p class="text-sm text-slate-400">Minimizes wasted space per block but creates very small, unusable fragments.</p>
-                    </div>
-                    <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl">
-                        <h4 class="font-bold text-red-400 mb-2">Worst Fit</h4>
-                        <p class="text-sm text-slate-400">Leaves the largest possible holes, which are more likely to be usable for future processes.</p>
+                    <div class="p-8">
+                        <!-- Allocation Tab -->
+                        <div id="about-allocation" class="about-content space-y-6">
+                            <h3 class="text-2xl font-bold text-blue-400">Memory Allocation Strategies</h3>
+                            <p class="text-slate-300 leading-relaxed">Memory allocation is the process of assigning blocks of memory to various programs and processes. In a contiguous allocation system, the OS must find a hole large enough to fit the process.</p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">First Fit</h4>
+                                    <p class="text-sm text-slate-400">Allocates the first hole that is big enough. It is generally the fastest strategy as it stops searching as soon as it finds a match.</p>
+                                </div>
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">Best Fit</h4>
+                                    <p class="text-sm text-slate-400">Allocates the smallest hole that is big enough. This strategy requires searching the entire list (unless ordered) and aims to minimize wasted space, but often leaves behind tiny, unusable holes.</p>
+                                </div>
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">Worst Fit</h4>
+                                    <p class="text-sm text-slate-400">Allocates the largest hole available. The idea is that the remaining part of the hole will be large enough to be useful for other processes.</p>
+                                </div>
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">Next Fit</h4>
+                                    <p class="text-sm text-slate-400">Similar to First Fit, but starts searching from the location of the last allocation rather than the beginning of memory.</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-red-500/10 border border-red-500/20 p-6 rounded-2xl">
+                                    <h4 class="font-bold text-red-400 mb-2 flex items-center gap-2">
+                                        <i data-lucide="scissors" size="18"></i> External Fragmentation
+                                    </h4>
+                                    <p class="text-sm text-slate-300">Occurs when total free memory is enough for a request, but it's not contiguous. The "External Fragmentation" stat shows the total free memory minus the largest available block.</p>
+                                </div>
+                                <div class="bg-orange-500/10 border border-orange-500/20 p-6 rounded-2xl">
+                                    <h4 class="font-bold text-orange-400 mb-2 flex items-center gap-2">
+                                        <i data-lucide="box" size="18"></i> Internal Fragmentation
+                                    </h4>
+                                    <p class="text-sm text-slate-300">Occurs when memory is allocated in fixed-size blocks (like Paging). If a process is smaller than the block, the remaining space inside that block is wasted.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Paging Tab -->
+                        <div id="about-paging" class="about-content hidden space-y-6">
+                            <h3 class="text-2xl font-bold text-emerald-400">Paging & Virtual Memory</h3>
+                            <p class="text-slate-300 leading-relaxed">Paging is a memory management scheme that eliminates the need for contiguous allocation of physical memory. It avoids external fragmentation and the need for compaction.</p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">Pages vs. Frames</h4>
+                                    <p class="text-sm text-slate-400">Logical memory is broken into fixed-sized blocks called <strong>Pages</strong>. Physical memory is broken into fixed-sized blocks called <strong>Frames</strong>.</p>
+                                </div>
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">Page Table</h4>
+                                    <p class="text-sm text-slate-400">A data structure used by the OS to keep track of the mapping between logical pages and physical frames.</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-blue-500/10 border border-blue-500/20 p-6 rounded-2xl">
+                                <h4 class="font-bold text-blue-400 mb-2">Page Replacement Algorithms</h4>
+                                <ul class="list-disc list-inside text-sm text-slate-300 space-y-2">
+                                    <li><strong>FIFO (First-In-First-Out):</strong> The oldest page in memory is the first to be replaced.</li>
+                                    <li><strong>LRU (Least Recently Used):</strong> Replaces the page that has not been used for the longest period of time.</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Stack vs Heap Tab -->
+                        <div id="about-stackheap" class="about-content hidden space-y-6">
+                            <h3 class="text-2xl font-bold text-purple-400">Stack vs. Heap Memory</h3>
+                            <p class="text-slate-300 leading-relaxed">Programs use two distinct areas of memory for data storage: the Stack and the Heap.</p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-blue-500/10 border border-blue-500/20 p-6 rounded-2xl">
+                                    <h4 class="font-bold text-blue-400 mb-2">The Stack</h4>
+                                    <ul class="list-disc list-inside text-sm text-slate-300 space-y-1">
+                                        <li>LIFO (Last-In-First-Out) structure.</li>
+                                        <li>Stores local variables and function calls.</li>
+                                        <li>Managed automatically by the CPU.</li>
+                                        <li>Fast access, but limited size.</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-2xl">
+                                    <h4 class="font-bold text-emerald-400 mb-2">The Heap</h4>
+                                    <ul class="list-disc list-inside text-sm text-slate-300 space-y-1">
+                                        <li>Dynamic memory allocation.</li>
+                                        <li>Stores large objects and global data.</li>
+                                        <li>Managed by the programmer or GC.</li>
+                                        <li>Slower access, but flexible size.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- GC Tab -->
+                        <div id="about-gc" class="about-content hidden space-y-6">
+                            <h3 class="text-2xl font-bold text-amber-400">Garbage Collection</h3>
+                            <p class="text-slate-300 leading-relaxed">Garbage collection (GC) is a form of automatic memory management. The garbage collector attempts to reclaim memory occupied by objects that are no longer in use by the program.</p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">Mark and Sweep</h4>
+                                    <p class="text-sm text-slate-400">The collector "marks" all objects reachable from the root set, then "sweeps" away all unmarked objects to reclaim their memory.</p>
+                                </div>
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">Reference Counting</h4>
+                                    <p class="text-sm text-slate-400">Each object keeps a count of how many references point to it. When the count drops to zero, the object is immediately reclaimed.</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -518,5 +616,18 @@
     </main>
 
     <script src="script.js"></script>
+    
+    <!-- Demo Explanation Overlay -->
+    <div id="demo-explanation" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] hidden">
+        <div class="bg-slate-900/95 border border-blue-500/50 backdrop-blur-md px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-4 max-w-2xl border-l-4 border-l-blue-500">
+            <div class="w-10 h-10 rounded-full bg-blue-600/20 flex items-center justify-center text-blue-400 shrink-0">
+                <i data-lucide="info" size="24"></i>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-blue-400 uppercase tracking-widest mb-0.5">Demo Step</p>
+                <p id="demo-text" class="text-sm text-slate-200 leading-relaxed font-medium"></p>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
