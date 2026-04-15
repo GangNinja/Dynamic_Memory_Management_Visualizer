@@ -1,138 +1,167 @@
-# Dynamic_Memory_Management_Visualizer
-Overview
+📊 Dynamic Memory Management Visualizer (MemVis)
 
-Dynamic Memory Management Visualizer is an interactive web-based tool designed to demonstrate how operating systems allocate and manage memory dynamically. The project visually simulates memory allocation processes and helps users understand important operating system concepts through an intuitive graphical interface.
+An interactive web-based educational tool designed to visualize and simulate memory management techniques used in Operating Systems. This project helps students and developers understand complex concepts like allocation strategies, paging, segmentation, and real-time memory monitoring through intuitive visualizations.
 
-Instead of learning only theoretical concepts, users can observe how memory blocks are allocated, deallocated, and organized in real time.
+🚀 Project Overview
 
-Features
-Memory Allocation Algorithms
+MemVis provides a hands-on simulation environment for core memory management concepts. It combines frontend visualization with backend system-level data monitoring, allowing users to both simulate algorithms and observe real system memory usage.
 
-The system supports multiple allocation strategies:
+The system supports:
+
+Memory allocation strategies (First Fit, Best Fit, etc.)
+Paging and page replacement
+Segmentation mapping
+Stack vs Heap behavior
+Garbage Collection visualization
+Live system memory tracking
+🧩 Module-Wise Breakdown
+1. Memory Allocation Module
+
+Simulates dynamic memory allocation algorithms:
 
 First Fit
 Best Fit
 Worst Fit
 Next Fit
 
-Users can create processes with different memory sizes and see how each algorithm allocates memory blocks.
+Includes:
 
-Memory Visualization
+Process allocation & deallocation
+External fragmentation detection
+Memory compaction
 
-The project visually represents memory as blocks:
+👉 Implemented in frontend logic
 
-Allocated blocks represent active processes
-Free blocks represent available memory
-Dynamic updates show how memory changes after allocation or deallocation
+2. Paging Module
 
-This helps users clearly understand memory behavior.
+Visualizes:
 
-Memory Deallocation
+Logical → Physical memory mapping
+Page replacement algorithms (FIFO, LRU)
+Page faults and hit ratio
 
-Processes can be removed from memory, allowing users to observe how memory blocks become free and how adjacent free blocks merge.
+Includes:
 
-Fragmentation Analysis
+Interactive mode
+Batch simulation mode
 
-The visualizer demonstrates two major types of fragmentation:
+👉 UI defined in
 
-Internal Fragmentation
+3. Segmentation Module
 
-Wasted space inside allocated memory blocks.
+Simulates:
 
-External Fragmentation
+Variable-sized memory segments
+Segment table (Base & Limit)
+Address translation
 
-Free memory exists but cannot be used because it is scattered.
+👉 Logic handled in
 
-The system also includes memory compaction to reduce fragmentation.
+4. Stack vs Heap Module
 
-Stack vs Heap Simulation
+Demonstrates:
 
-The project includes a simple simulation of stack and heap memory.
+Stack frame push/pop operations
+Heap allocation behavior
+Lifetime differences
+5. Garbage Collection Module
 
-Stack simulation demonstrates:
+Supports:
 
-Function call stack
-Push and pop operations
-
-Heap simulation demonstrates:
-
-Dynamic memory allocation
-Object storage behavior
-Garbage Collection Simulation
-
-The visualizer introduces basic garbage collection concepts:
-
+Mark & Sweep
 Reference Counting
-Mark and Sweep
 
-This helps users understand how unused memory is reclaimed in modern programming environments.
+Shows how unreachable objects are reclaimed.
 
-Algorithm Comparison Dashboard
+6. Live Memory Monitoring Module (GO LIVE 🚀)
 
-A visual dashboard compares allocation algorithms using charts to show differences in efficiency and memory utilization.
+Displays real-time system memory usage including:
 
-Technologies Used
+RAM usage
+Swap memory
+Top processes by memory
 
-Frontend:
+👉 Backend API implemented using:
 
-HTML
-CSS
+Flask + psutil
+OR Node.js + systeminformation
+⚙️ Functionalities
+📦 Dynamic memory allocation simulation
+📉 Fragmentation detection and compaction
+🔄 Paging with page replacement algorithms
+📊 Real-time statistics (utilization, free memory, faults)
+🧠 Segmentation with address translation
+⚡ Interactive demos for learning
+📡 Live system memory visualization
+🎮 Queue-based process simulation
+🔁 Undo/Redo functionality
+🛠️ Technology Used
+Programming Languages:
+Python
 JavaScript
-
-Visualization:
-
+HTML5
+CSS3
+Libraries and Tools:
+Frontend:
+Tailwind CSS
 Chart.js
-
-Future Backend Integration:
-
-Python (Flask)
-PostgreSQL
-Project Structure
-memory-visualizer
+Lucide Icons
+Backend:
+Flask (Python API)
+Express.js (Node server)
+System Monitoring:
+psutil (Python)
+systeminformation (Node.js)
+Other Tools:
+Git & GitHub (Version Control)
+Vite (Development server for frontend)
+Browser-based UI rendering
+🖥️ Project Structure
+MemVis/
 │
-├── index.html
-├── style.css
-│
-├── js
-│   ├── memory.js
-│   ├── algorithms.js
-│   ├── stackHeap.js
-│   ├── garbage.js
-│   ├── dashboard.js
-│   └── ui.js
-How to Run the Project
-Clone the repository
-git clone https://github.com/yourusername/memory-visualizer.git
-Open the project folder.
-Open index.html in your browser.
+├── index.html        # Main UI layout
+├── style.css         # Styling and UI effects
+├── script.js         # Core simulation logic
+├── app.py            # Flask backend (Python)
+├── server.js         # Node backend (alternative)
+└── README.md
+▶️ How to Run
+Option 1: Python (Flask Backend)
+pip install flask psutil
+python app.py
 
-Alternatively, use VS Code Live Server for automatic refresh during development.
+Then open:
 
-Future Improvements
+http://localhost:3000
+Option 2: Node.js Backend
+npm install
+node server.js
+📚 Educational Use
 
-Planned enhancements include:
+This project is ideal for:
 
-Animated memory allocation steps
-Real-time algorithm performance measurement
-Drag-and-drop process creation
-Backend integration with Flask API
-PostgreSQL storage for simulation data
-Advanced OS memory models (paging, segmentation)
-Educational Purpose
+Operating Systems courses
+Visual learning of memory management
+Demonstrations and presentations
+Academic mini-projects
+📌 Key Concepts Covered
+Dynamic Memory Allocation
+External Fragmentation
+Paging & Page Replacement
+Segmentation
+Stack vs Heap
+Garbage Collection
+Real-time Memory Monitoring
+🔮 Future Enhancements
+Add more page replacement algorithms (Optimal, LFU)
+Multi-user simulation mode
+AI-based memory optimization suggestions
+Export simulation results
+Cloud deployment
+👨‍💻 Author
 
-This project is designed primarily for students studying:
-
-Operating Systems
-Data Structures
-Memory Management
-Computer Architecture
-
-It provides a visual and interactive way to understand complex memory allocation concepts.
-
-Author
-
-Developed as an educational project to demonstrate dynamic memory management concepts through visualization.
-by
-Diwakar 
-Narasimha
-Likith
+Vallabhaneni Lakshmi Narasimha
+Bellamkonda Likith Raj
+Diwakar Kaushik
+B.Tech CSE (AI & Data Engineering)
+Lovely Professional University

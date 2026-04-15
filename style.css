@@ -1,0 +1,90 @@
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #0f172a;
+    color: #f8fafc;
+}
+.font-mono {
+    font-family: 'JetBrains Mono', monospace;
+}
+.sidebar-item.active {
+    background-color: #1e293b;
+    color: #3b82f6;
+    border-right: 4px solid #3b82f6;
+}
+.simulator-section {
+    display: none;
+}
+.simulator-section.active {
+    display: block;
+}
+.about-tab.active {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+}
+.memory-block {
+    transition: all 0.3s ease;
+}
+.memory-block:hover {
+    transform: scale(1.02);
+    z-index: 10;
+}
+.tooltip {
+    visibility: hidden;
+    position: absolute;
+    z-index: 50;
+    background-color: #1e293b;
+    color: #fff;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    font-size: 10px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.has-tooltip:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #0f172a;
+}
+::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}
+
+/* Live Dashboard Styles */
+#live-section .bg-slate-800\/50 {
+    backdrop-filter: blur(8px);
+}
+
+#live-section .rounded-3xl {
+    border-radius: 1.5rem;
+}
+
+#app-groups-grid .group:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+#process-bar div {
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .5; }
+}
+
