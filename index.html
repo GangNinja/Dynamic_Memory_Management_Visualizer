@@ -1,76 +1,920 @@
+<!-- MemVis Version 1.2.1 - Updated Live Dashboard -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Dynamic Memory Management Visualizer</title>
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MemVis: Dynamic Memory Management Visualizer</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
+<body class="h-screen overflow-hidden flex">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col">
+        <div class="p-6 border-b border-slate-800">
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                <i data-lucide="cpu" class="text-blue-500"></i>
+                <span>MemVis</span>
+            </h1>
+            <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-1 font-bold">Memory Visualizer</p>
+        </div>
+        
+        <nav class="flex-1 py-6">
+            <button onclick="switchSection('allocation')" class="sidebar-item active w-full flex items-center gap-3 px-6 py-3 text-sm font-medium text-slate-400 hover:bg-slate-800/50 transition-all" id="nav-allocation">
+                <i data-lucide="layout-grid" size="18"></i> Allocation
+            </button>
+            <button onclick="switchSection('paging')" class="sidebar-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium text-slate-400 hover:bg-slate-800/50 transition-all" id="nav-paging">
+                <i data-lucide="layers" size="18"></i> Paging
+            </button>
+            <button onclick="switchSection('segmentation')" class="sidebar-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium text-slate-400 hover:bg-slate-800/50 transition-all" id="nav-segmentation">
+                <i data-lucide="scissors" size="18"></i> Segmentation
+            </button>
+            <button onclick="switchSection('stackheap')" class="sidebar-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium text-slate-400 hover:bg-slate-800/50 transition-all" id="nav-stackheap">
+                <i data-lucide="database" size="18"></i> Stack vs Heap
+            </button>
+            <button onclick="switchSection('gc')" class="sidebar-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium text-slate-400 hover:bg-slate-800/50 transition-all" id="nav-gc">
+                <i data-lucide="trash-2" size="18"></i> Garbage Collection
+            </button>
+            <button onclick="switchSection('about')" class="sidebar-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium text-slate-400 hover:bg-slate-800/50 transition-all" id="nav-about">
+                <i data-lucide="info" size="18"></i> About
+            </button>
+            <button onclick="switchSection('live')" class="sidebar-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium text-slate-400 hover:bg-slate-800/50 transition-all" id="nav-live">
+                <i data-lucide="radio" size="18"></i> GO LIVE
+            </button>
+        </nav>
+        
+        <div class="p-6 border-t border-slate-800 bg-slate-900/50">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-xs">MV</div>
+                <div>
+                    <p class="text-xs font-bold">Educational Tool</p>
+                    <p class="text-[10px] text-slate-500">v1.2.0</p>
+                </div>
+            </div>
+        </div>
+    </aside>
 
-<body>
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto p-8 bg-[#0f172a]">
+        <div class="max-w-7xl mx-auto">
+            
+            <!-- Allocation Simulator Section -->
+            <section id="allocation-section" class="simulator-section active space-y-8">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-3xl font-bold">Memory Allocation</h2>
+                        <p class="text-slate-400 mt-1">Simulate First Fit, Best Fit, Worst Fit, and Next Fit algorithms.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="runAllocationDemo()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-blue-900/20">
+                            <i data-lucide="play-circle" size="18"></i> Run Demo
+                        </button>
+                        <button onclick="undoAllocation()" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 transition-all" title="Undo">
+                            <i data-lucide="undo-2" size="18"></i>
+                        </button>
+                        <button onclick="redoAllocation()" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 transition-all" title="Redo">
+                            <i data-lucide="redo-2" size="18"></i>
+                        </button>
+                    </div>
+                </div>
 
-<h1>Memory Management Visualizer (Partitioning & Paging)</h1>
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-slate-800/50 border border-slate-700 p-4 rounded-2xl">
+                        <p class="text-xs text-slate-500 uppercase font-bold mb-1">Utilization</p>
+                        <p class="text-2xl font-bold text-blue-400" id="stat-utilization">0%</p>
+                    </div>
+                    <div class="bg-slate-800/50 border border-slate-700 p-4 rounded-2xl">
+                        <p class="text-xs text-slate-500 uppercase font-bold mb-1">Free Memory</p>
+                        <p class="text-2xl font-bold text-emerald-400" id="stat-free">1024 KB</p>
+                    </div>
+                    <div class="bg-slate-800/50 border border-slate-700 p-4 rounded-2xl">
+                        <p class="text-xs text-slate-500 uppercase font-bold mb-1">Ext. Fragmentation</p>
+                        <p class="text-2xl font-bold text-red-400" id="stat-fragmentation">0 KB</p>
+                    </div>
+                    <div class="bg-slate-800/50 border border-slate-700 p-4 rounded-2xl">
+                        <p class="text-xs text-slate-500 uppercase font-bold mb-1">Total Blocks</p>
+                        <p class="text-2xl font-bold text-purple-400" id="stat-blocks">1</p>
+                    </div>
+                </div>
 
-<div class="mode-tabs">
-  <button class="tab-btn active" onclick="switchMode('partition')">Partitioning</button>
-  <button class="tab-btn" onclick="switchMode('paging')">Paging</button>
-</div>
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                    <!-- Controls -->
+                    <div class="lg:col-span-1 space-y-6">
+                        <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl space-y-4">
+                            <h3 class="font-bold flex items-center gap-2">
+                                <i data-lucide="settings" size="16" class="text-blue-400"></i> Control Panel
+                            </h3>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-xs text-slate-500 font-bold uppercase mb-1 block">Total Memory (KB)</label>
+                                    <input type="number" id="total-memory-input" value="1024" min="256" step="256" onchange="resetAllocation()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-slate-500 font-bold uppercase mb-1 block">Algorithm</label>
+                                    <select id="alloc-algo" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="First Fit">First Fit</option>
+                                        <option value="Best Fit">Best Fit</option>
+                                        <option value="Worst Fit">Worst Fit</option>
+                                        <option value="Next Fit">Next Fit</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-xs text-slate-500 font-bold uppercase mb-1 block">Process ID</label>
+                                    <input type="text" id="proc-id" value="P1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-slate-500 font-bold uppercase mb-1 block">Size (KB)</label>
+                                    <input type="number" id="proc-size" value="128" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="allocateProcess()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg transition-all text-sm">Allocate</button>
+                                <button onclick="addToQueue()" class="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg" title="Add to Queue">
+                                    <i data-lucide="list-ordered" size="18"></i>
+                                </button>
+                            </div>
+                            <button onclick="compactMemory()" class="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 font-bold py-2 rounded-lg border border-emerald-500/30 transition-all text-sm">Compact Memory</button>
+                            <button onclick="resetAllocation()" class="w-full bg-slate-700/50 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-lg transition-all text-sm">Reset All</button>
+                        </div>
 
-<div id="partitionSection" class="section active">
-  <div class="controls">
-    <label>Total Memory</label>
-    <input type="number" id="totalMemory" value="1000">
-    <label>Process ID</label>
-    <input type="text" id="pid">
-    <label>Process Size</label>
-    <input type="number" id="psize">
-    <select id="algorithm">
-      <option value="first">First Fit</option>
-      <option value="best">Best Fit</option>
-      <option value="worst">Worst Fit</option>
-    </select>
-    <button onclick="allocate()">Allocate</button>
-    <button onclick="resetMemory()">Reset</button>
-  </div>
-</div>
+                        <!-- Queue -->
+                        <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl space-y-4">
+                            <div class="flex justify-between items-center">
+                                <h3 class="font-bold flex items-center gap-2">
+                                    <i data-lucide="list-ordered" size="16" class="text-purple-400"></i> Process Queue
+                                </h3>
+                                <div class="flex gap-1">
+                                    <button onclick="toggleAutoAllocate()" id="btn-auto" class="p-1.5 bg-slate-700 hover:bg-slate-600 rounded text-slate-300" title="Auto Allocate">
+                                        <i data-lucide="play" size="14"></i>
+                                    </button>
+                                    <button onclick="stepQueue()" class="p-1.5 bg-slate-700 hover:bg-slate-600 rounded text-slate-300" title="Step">
+                                        <i data-lucide="step-forward" size="14"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="process-queue" class="space-y-2 max-h-48 overflow-y-auto pr-2">
+                                <!-- Queue items here -->
+                                <p class="text-xs text-slate-600 italic text-center py-4">Queue is empty</p>
+                            </div>
+                        </div>
+                    </div>
 
-<div id="pagingSection" class="section">
-  <div class="paging-controls">
-    <label># Frames:</label>
-    <input type="number" id="numFrames" value="3" min="1" max="8">
-    <label>Reference String:</label>
-    <textarea class="ref-input" id="refString" placeholder="e.g. 7,0,1,2,0,3,0,4,2,3,0,3,2,1,2,0,1,7,0,1">7,0,1,2,0,3,0,4,2,3,0,3,2,1,2,0,1,7,0,1</textarea>
-    <br>
-    <select id="pagingAlgo">
-      <option value="fifo">FIFO</option>
-      <option value="lru">LRU</option>
-      <option value="optimal">Optimal</option>
-    </select>
-    <button onclick="runPaging()">Run Simulation</button>
-    <button onclick="resetPaging()">Reset</button>
-  </div>
-  <h2>Page Frames</h2>
-  <div id="framesContainer"></div>
-  <div id="pagingStats">Page Faults: 0</div>
-  <h3>Reference Trace</h3>
-  <div id="traceContainer" class="trace-table">
-    <table>
-      <thead><tr><th>Ref</th><th>Frames</th><th>Fault?</th></tr></thead>
-      <tbody id="traceBody"></tbody>
-    </table>
-  </div>
-</div>
+                    <!-- Visualization -->
+                    <div class="lg:col-span-3 space-y-6">
+                        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl min-h-[400px]">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="font-bold text-slate-400">Memory Map (1024 KB)</h3>
+                                <div class="flex gap-4 text-[10px] font-bold uppercase tracking-widest">
+                                    <div class="flex items-center gap-1.5"><div class="w-3 h-3 bg-emerald-500 rounded-sm"></div> Allocated</div>
+                                    <div class="flex items-center gap-1.5"><div class="w-3 h-3 bg-slate-700 rounded-sm"></div> Free</div>
+                                    <div class="flex items-center gap-1.5"><div class="w-3 h-3 bg-red-500 rounded-sm"></div> Fragmented</div>
+                                </div>
+                            </div>
+                            <div id="memory-map" class="flex w-full h-32 bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 relative">
+                                <!-- Memory blocks here -->
+                            </div>
+                            
+                            <div class="mt-12">
+                                <h3 class="font-bold text-slate-400 mb-4">Active Processes</h3>
+                                <div id="active-processes" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <!-- Active processes here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-<xai:function_call name="edit_file">
-<parameter name="path">c:/Users/asus/Desktop/main/index.html
+            <!-- Paging Simulator Section -->
+            <section id="paging-section" class="simulator-section space-y-8">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-3xl font-bold">Paging Simulation</h2>
+                        <p class="text-slate-400 mt-1">Visualize logical to physical memory mapping and page replacement.</p>
+                    </div>
+                    <button onclick="runPagingDemo()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-blue-900/20">
+                        <i data-lucide="play-circle" size="18"></i> Run Demo
+                    </button>
+                </div>
 
-<h2>Memory Layout</h2>
+                <!-- Paging Stats -->
+                <div class="flex gap-4 border-b border-slate-700 pb-4">
+                    <button onclick="switchPagingMode('interactive')" class="paging-mode-btn active px-6 py-2 rounded-xl font-bold transition-all bg-blue-600 text-white" id="paging-btn-interactive">Interactive Mode</button>
+                    <button onclick="switchPagingMode('batch')" class="paging-mode-btn px-6 py-2 rounded-xl font-bold transition-all text-slate-400 hover:bg-slate-800" id="paging-btn-batch">Batch Mode</button>
+                </div>
 
-<div id="memoryContainer"></div>
+                <div id="paging-interactive" class="paging-content active space-y-8">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-slate-800/50 border border-slate-700 p-4 rounded-2xl text-center">
+                            <p class="text-xs text-slate-500 uppercase font-bold mb-1">Page Hits</p>
+                            <p class="text-2xl font-bold text-emerald-400" id="paging-hits">0</p>
+                        </div>
+                        <div class="bg-slate-800/50 border border-slate-700 p-4 rounded-2xl text-center">
+                            <p class="text-xs text-slate-500 uppercase font-bold mb-1">Page Faults</p>
+                            <p class="text-2xl font-bold text-red-400" id="paging-faults">0</p>
+                        </div>
+                        <div class="bg-slate-800/50 border border-slate-700 p-4 rounded-2xl text-center">
+                            <p class="text-xs text-slate-500 uppercase font-bold mb-1">Hit Ratio</p>
+                            <p class="text-2xl font-bold text-blue-400" id="paging-ratio">0%</p>
+                        </div>
+                        <div class="bg-slate-800/50 border border-slate-700 p-4 rounded-2xl text-center">
+                            <p class="text-xs text-slate-500 uppercase font-bold mb-1">Frames</p>
+                            <p class="text-2xl font-bold text-purple-400" id="paging-frames-count">4</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 shadow-xl">
+                            <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                                <i data-lucide="refresh-cw" class="text-blue-400" size={20}></i> Configuration
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm text-slate-400 mb-1">Replacement Algorithm</label>
+                                    <select id="paging-algo" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="FIFO">FIFO</option>
+                                        <option value="LRU">LRU</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm text-slate-400 mb-1">Number of Frames</label>
+                                    <input type="number" id="paging-frames-input" value="4" min="1" max="8" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <button onclick="resetPaging()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 rounded-lg transition-all">Reset Simulation</button>
+                            </div>
+                        </div>
 
-<h3 id="fragmentation"></h3>
+                        <div class="md:col-span-3 bg-slate-800/50 border border-slate-700 rounded-2xl p-6 shadow-xl">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-semibold">Access Logical Memory</h3>
+                                <div class="flex gap-4 text-xs text-slate-400">
+                                    <div class="flex items-center gap-1"><div class="w-2 h-2 bg-blue-500 rounded-full"></div> Read</div>
+                                    <div class="flex items-center gap-1"><div class="w-2 h-2 bg-amber-500 rounded-full"></div> Write</div>
+                                </div>
+                            </div>
+                            <div id="logical-pages-grid" class="flex flex-wrap gap-3">
+                                <!-- Logical pages here -->
+                            </div>
+                        </div>
+                    </div>
 
-<script src="memory.js"></script>
-<script src="algorithms.js"></script>
-<script src="ui.js"></script>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- Logical Memory List -->
+                        <div class="space-y-4">
+                            <h4 class="text-center font-bold text-slate-400 flex items-center justify-center gap-2">
+                                <i data-lucide="cpu" size="18"></i> Logical Memory
+                            </h4>
+                            <div id="logical-memory-list" class="bg-slate-900 rounded-2xl border border-slate-700 overflow-hidden">
+                                <!-- List items here -->
+                            </div>
+                        </div>
 
+                        <!-- Page Table -->
+                        <div class="space-y-4">
+                            <h4 class="text-center font-bold text-slate-400 flex items-center justify-center gap-2">
+                                <i data-lucide="table" size="18"></i> Page Table
+                            </h4>
+                            <div class="bg-slate-800/30 rounded-2xl border border-slate-700 p-4">
+                                <table class="w-full text-sm">
+                                    <thead>
+                                        <tr class="text-slate-500 border-b border-slate-700">
+                                            <th class="pb-2 text-left">Page #</th>
+                                            <th class="pb-2 text-center">Valid</th>
+                                            <th class="pb-2 text-center">Dirty</th>
+                                            <th class="pb-2 text-right">Frame #</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="page-table-body">
+                                        <!-- Rows here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="page-fault-alert" class="hidden bg-red-500/10 border border-red-500/30 p-4 rounded-2xl flex items-center gap-3 text-red-400">
+                                <i data-lucide="alert-circle" size="20"></i>
+                                <div>
+                                    <p class="font-bold">Page Fault!</p>
+                                    <p class="text-xs opacity-80">Page was not in physical memory.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Physical Memory -->
+                        <div class="space-y-4">
+                            <h4 class="text-center font-bold text-slate-400 flex items-center justify-center gap-2">
+                                <i data-lucide="hard-drive" size="18"></i> Physical Memory (RAM)
+                            </h4>
+                            <div id="physical-memory-list" class="bg-slate-900 rounded-2xl border border-slate-700 overflow-hidden">
+                                <!-- Frames here -->
+                            </div>
+                            <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
+                                <h5 class="text-xs font-bold text-slate-500 uppercase mb-3">Access History</h5>
+                                <div id="paging-history" class="space-y-2">
+                                    <p class="text-slate-600 italic text-center text-xs">No history yet</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="paging-batch" class="paging-content hidden space-y-8">
+                    <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm text-slate-400 mb-1">Page Reference String (comma separated)</label>
+                                <textarea id="batch-ref-string" placeholder="e.g. 1, 2, 3, 4, 1, 2, 5" class="w-full h-32 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none font-mono text-white">1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5</textarea>
+                            </div>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm text-slate-400 mb-1">Replacement Algorithm</label>
+                                    <select id="batch-algo" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="FIFO">FIFO</option>
+                                        <option value="LRU">LRU</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm text-slate-400 mb-1">Number of Frames</label>
+                                    <input type="number" id="batch-frames-input" value="4" min="1" max="8" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <button onclick="runBatchSimulation()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-900/20">Run Batch Simulation</button>
+                            </div>
+                        </div>
+
+                        <div id="batch-results" class="hidden space-y-8">
+                            <!-- Results here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Segmentation Simulator Section -->
+            <section id="segmentation-section" class="simulator-section space-y-8">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-3xl font-bold">Segmentation</h2>
+                        <p class="text-slate-400 mt-1">Visualize variable-sized memory segments and their mapping to physical memory.</p>
+                    </div>
+                    <button onclick="runSegmentationDemo()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-blue-900/20">
+                        <i data-lucide="play-circle" size="18"></i> Run Demo
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                    <!-- Controls -->
+                    <div class="lg:col-span-1 space-y-6">
+                        <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl space-y-4">
+                            <h3 class="font-bold flex items-center gap-2">
+                                <i data-lucide="plus-circle" size="16" class="text-blue-400"></i> Add Segment
+                            </h3>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="text-xs text-slate-500 font-bold uppercase mb-1 block">Segment Name</label>
+                                    <input type="text" id="seg-name" value="Code" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-slate-500 font-bold uppercase mb-1 block">Size (KB)</label>
+                                    <input type="number" id="seg-size" value="200" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <button onclick="addSegment()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg transition-all text-sm">Add Segment</button>
+                                <button onclick="resetSegmentation()" class="w-full bg-slate-700/50 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-lg transition-all text-sm">Reset All</button>
+                            </div>
+                        </div>
+
+                        <!-- Segment Table Info -->
+                        <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl space-y-4">
+                            <h3 class="font-bold flex items-center gap-2">
+                                <i data-lucide="table" size="16" class="text-purple-400"></i> Segment Table
+                            </h3>
+                            <div class="overflow-hidden rounded-xl border border-slate-700">
+                                <table class="w-full text-[10px]">
+                                    <thead class="bg-slate-900 text-slate-500 uppercase">
+                                        <tr>
+                                            <th class="p-2 text-left">Seg</th>
+                                            <th class="p-2 text-center">Base</th>
+                                            <th class="p-2 text-right">Limit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="segment-table-body" class="divide-y divide-slate-700">
+                                        <!-- Rows here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Address Translation Test -->
+                        <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl space-y-4">
+                            <h3 class="font-bold flex items-center gap-2 text-white">
+                                <i data-lucide="calculator" size="16" class="text-blue-400"></i> Address Translation
+                            </h3>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="text-xs text-slate-500 font-bold uppercase mb-1 block">Select Segment</label>
+                                    <select id="seg-translation-select" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-blue-500">
+                                        <!-- Options injected here -->
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-xs text-slate-500 font-bold uppercase mb-1 block">Logical Offset (KB)</label>
+                                    <input type="number" id="seg-translation-offset" placeholder="e.g. 50" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <button onclick="translateSegmentationAddress()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg transition-all text-sm">Translate</button>
+                                
+                                <!-- Result Display -->
+                                <div id="seg-translation-result" class="hidden bg-slate-900/80 border border-slate-700 rounded-xl p-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <div class="flex items-center gap-2 text-emerald-400 font-bold text-[10px] mb-1">
+                                        <i data-lucide="check-circle" size="12"></i>
+                                        Translation Successful
+                                    </div>
+                                    <div class="font-mono text-[10px] space-y-1">
+                                        <div class="text-slate-500">Physical = Base + Offset</div>
+                                        <div id="seg-translation-formula" class="text-slate-300">100 + 50</div>
+                                        <div id="seg-translation-final" class="text-white font-bold mt-1">Result: 150 KB</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visualization -->
+                    <div class="lg:col-span-3 space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Logical View -->
+                            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl">
+                                <h3 class="font-bold text-slate-400 mb-4 flex items-center gap-2">
+                                    <i data-lucide="layout" size="16"></i> Logical Address Space
+                                </h3>
+                                <div id="logical-segments" class="space-y-3 min-h-[300px] flex flex-col justify-center">
+                                    <!-- Logical segments here -->
+                                </div>
+                            </div>
+
+                            <!-- Physical View -->
+                            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl">
+                                <h3 class="font-bold text-slate-400 mb-4 flex items-center gap-2">
+                                    <i data-lucide="hard-drive" size="16"></i> Physical Memory
+                                </h3>
+                                <div id="physical-segments" class="w-full h-[400px] bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 relative flex flex-col">
+                                    <!-- Physical memory blocks here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Stack vs Heap Section -->
+            <section id="stackheap-section" class="simulator-section space-y-8">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-3xl font-bold">Stack vs Heap</h2>
+                        <p class="text-slate-400 mt-1">Visualize how the call stack and dynamic heap grow in memory.</p>
+                    </div>
+                    <button onclick="runStackHeapDemo()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-blue-900/20">
+                        <i data-lucide="play-circle" size="18"></i> Run Demo
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[700px]">
+                    <!-- Stack Section -->
+                    <div class="flex flex-col bg-slate-800/50 border border-slate-700 rounded-3xl overflow-hidden shadow-2xl">
+                        <div class="p-6 border-b border-slate-700 bg-slate-800/80 flex justify-between items-center">
+                            <div>
+                                <h3 class="text-xl font-bold flex items-center gap-2">
+                                    <i data-lucide="layers" class="text-blue-400"></i> Call Stack
+                                </h3>
+                                <p class="text-xs text-slate-500">Grows downwards (High → Low Addresses)</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <input type="text" id="stack-input" placeholder="Function..." class="w-24 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500 outline-none text-white">
+                                <button onclick="pushStack()" class="bg-blue-600 hover:bg-blue-500 p-2 rounded-lg transition-colors text-white" title="Push to Stack">
+                                    <i data-lucide="arrow-down" size="18"></i>
+                                </button>
+                                <button onclick="popStack()" class="bg-red-600/20 hover:bg-red-600/40 p-2 rounded-lg transition-colors text-red-400" title="Pop from Stack">
+                                    <i data-lucide="arrow-up" size="18"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="stack-container" class="flex-1 p-8 flex flex-col-reverse justify-start gap-3 overflow-y-auto">
+                            <!-- Stack items here -->
+                        </div>
+                    </div>
+
+                    <!-- Heap Section -->
+                    <div class="flex flex-col bg-slate-800/50 border border-slate-700 rounded-3xl overflow-hidden shadow-2xl">
+                        <div class="p-6 border-b border-slate-700 bg-slate-800/80 flex justify-between items-center">
+                            <div>
+                                <h3 class="text-xl font-bold flex items-center gap-2">
+                                    <i data-lucide="database" class="text-emerald-400"></i> Dynamic Heap
+                                </h3>
+                                <p class="text-xs text-slate-500">Grows upwards (Low → High Addresses)</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <input type="text" id="heap-input" placeholder="Object..." class="w-24 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs focus:ring-1 focus:ring-emerald-500 outline-none text-white">
+                                <button onclick="mallocHeap()" class="bg-emerald-600 hover:bg-emerald-500 p-2 rounded-lg transition-colors text-white" title="Malloc">
+                                    <i data-lucide="plus" size="18"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="heap-container" class="flex-1 p-8 grid grid-cols-2 gap-4 content-start overflow-y-auto">
+                            <!-- Heap objects here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Garbage Collection Section -->
+            <section id="gc-section" class="simulator-section space-y-8">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-3xl font-bold">Garbage Collection</h2>
+                        <p class="text-slate-400 mt-1">Visualize Mark & Sweep and Reference Counting algorithms.</p>
+                    </div>
+                    <button onclick="runGCDemo()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-blue-900/20">
+                        <i data-lucide="play-circle" size="18"></i> Run Demo
+                    </button>
+                </div>
+
+                <div class="flex flex-wrap gap-6 items-center justify-between bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
+                    <div class="flex items-center gap-4">
+                        <div class="space-y-1">
+                            <label class="text-xs text-slate-500 uppercase font-bold">GC Strategy</label>
+                            <select id="gc-strategy" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                                <option value="Mark and Sweep">Mark and Sweep</option>
+                                <option value="Reference Counting">Reference Counting</option>
+                            </select>
+                        </div>
+                        <button onclick="addGCObject()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2">
+                            <i data-lucide="zap" size="16"></i> Create Object
+                        </button>
+                        <button onclick="deleteUnselectedGC()" class="bg-red-600/20 hover:bg-red-600/40 text-red-400 px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2">
+                            <i data-lucide="trash-2" size="16"></i> Delete Unselected
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <div class="text-right">
+                            <p class="text-xs text-slate-500 font-bold uppercase">Status</p>
+                            <p id="gc-status" class="text-sm font-bold text-emerald-400">Idle</p>
+                        </div>
+                        <button onclick="runGC()" id="btn-run-gc" class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg font-bold transition-all flex items-center gap-2 shadow-lg shadow-emerald-900/20">
+                            <i data-lucide="trash-2" size="18"></i> Run Collector
+                        </button>
+                    </div>
+                </div>
+
+                <div id="gc-canvas-container" class="relative bg-slate-900 rounded-3xl border-2 border-slate-800 h-[500px] overflow-hidden p-8" onmousemove="handleGCMouseMove(event)" onmouseup="handleGCMouseUp(event)">
+                    <!-- Root Area -->
+                    <div class="absolute top-0 left-0 right-0 h-20 bg-blue-500/5 border-b border-blue-500/20 flex items-center px-8 gap-4">
+                        <div class="flex items-center gap-2 text-blue-400 font-bold text-sm">
+                            <i data-lucide="search" size="16"></i> Root Set (Stack/Globals)
+                        </div>
+                        <div id="gc-root-list" class="flex gap-2">
+                            <!-- Roots here -->
+                        </div>
+                    </div>
+
+                    <!-- Objects Canvas -->
+                    <div class="relative w-full h-full mt-10" id="gc-canvas">
+                        <svg id="gc-svg" class="absolute inset-0 w-full h-full pointer-events-none">
+                            <defs>
+                                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="25" refY="3.5" orient="auto">
+                                    <polygon points="0 0, 10 3.5, 0 7" fill="#475569" />
+                                </marker>
+                            </defs>
+                            <!-- Lines here -->
+                        </svg>
+                        <div id="gc-objects-container"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- About Section -->
+            <section id="about-section" class="simulator-section space-y-8">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-3xl font-bold">About Memory Management</h2>
+                        <p class="text-slate-400 mt-1">Learn about the core concepts of operating system memory management.</p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/50 border border-slate-700 rounded-3xl overflow-hidden shadow-2xl">
+                    <div class="flex border-b border-slate-700 bg-slate-800/80 overflow-x-auto">
+                        <button onclick="switchAboutTab('allocation')" class="about-tab active px-6 py-4 text-sm font-bold text-slate-400 hover:text-white transition-all border-b-2 border-transparent" id="tab-allocation">Allocation</button>
+                        <button onclick="switchAboutTab('paging')" class="about-tab px-6 py-4 text-sm font-bold text-slate-400 hover:text-white transition-all border-b-2 border-transparent" id="tab-paging">Paging</button>
+                        <button onclick="switchAboutTab('segmentation')" class="about-tab px-6 py-4 text-sm font-bold text-slate-400 hover:text-white transition-all border-b-2 border-transparent" id="tab-segmentation">Segmentation</button>
+                        <button onclick="switchAboutTab('stackheap')" class="about-tab px-6 py-4 text-sm font-bold text-slate-400 hover:text-white transition-all border-b-2 border-transparent" id="tab-stackheap">Stack vs Heap</button>
+                        <button onclick="switchAboutTab('gc')" class="about-tab px-6 py-4 text-sm font-bold text-slate-400 hover:text-white transition-all border-b-2 border-transparent" id="tab-gc">Garbage Collection</button>
+                        <button onclick="switchAboutTab('live')" class="about-tab px-6 py-4 text-sm font-bold text-slate-400 hover:text-white transition-all border-b-2 border-transparent" id="tab-live">Live Analytics</button>
+                    </div>
+
+                    <div class="p-8">
+                        <!-- Allocation Tab -->
+                        <div id="about-allocation" class="about-content space-y-6">
+                            <h3 class="text-2xl font-bold text-blue-400">Memory Allocation Strategies</h3>
+                            <p class="text-slate-300 leading-relaxed">Memory allocation is the process of assigning blocks of memory to various programs and processes. In a contiguous allocation system, the OS must find a hole large enough to fit the process.</p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">First Fit</h4>
+                                    <p class="text-sm text-slate-400">Allocates the first hole that is big enough. It is generally the fastest strategy as it stops searching as soon as it finds a match.</p>
+                                </div>
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">Best Fit</h4>
+                                    <p class="text-sm text-slate-400">Allocates the smallest hole that is big enough. This strategy requires searching the entire list (unless ordered) and aims to minimize wasted space, but often leaves behind tiny, unusable holes.</p>
+                                </div>
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">Worst Fit</h4>
+                                    <p class="text-sm text-slate-400">Allocates the largest hole available. The idea is that the remaining part of the hole will be large enough to be useful for other processes.</p>
+                                </div>
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">Next Fit</h4>
+                                    <p class="text-sm text-slate-400">Similar to First Fit, but starts searching from the location of the last allocation rather than the beginning of memory.</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-red-500/10 border border-red-500/20 p-6 rounded-2xl">
+                                    <h4 class="font-bold text-red-400 mb-2 flex items-center gap-2">
+                                        <i data-lucide="scissors" size="18"></i> External Fragmentation
+                                    </h4>
+                                    <p class="text-sm text-slate-300">Occurs when total free memory is enough for a request, but it's not contiguous. The "External Fragmentation" stat shows the total free memory minus the largest available block.</p>
+                                </div>
+                                <div class="bg-orange-500/10 border border-orange-500/20 p-6 rounded-2xl">
+                                    <h4 class="font-bold text-orange-400 mb-2 flex items-center gap-2">
+                                        <i data-lucide="box" size="18"></i> Internal Fragmentation
+                                    </h4>
+                                    <p class="text-sm text-slate-300">Occurs when memory is allocated in fixed-size blocks (like Paging). If a process is smaller than the block, the remaining space inside that block is wasted.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Paging Tab -->
+                        <div id="about-paging" class="about-content hidden space-y-6">
+                            <h3 class="text-2xl font-bold text-emerald-400">Paging & Virtual Memory</h3>
+                            <p class="text-slate-300 leading-relaxed">Paging is a memory management scheme that eliminates the need for contiguous allocation of physical memory. It avoids external fragmentation and the need for compaction.</p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">Pages vs. Frames</h4>
+                                    <p class="text-sm text-slate-400">Logical memory is broken into fixed-sized blocks called <strong>Pages</strong>. Physical memory is broken into fixed-sized blocks called <strong>Frames</strong>.</p>
+                                </div>
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">Page Table</h4>
+                                    <p class="text-sm text-slate-400">A data structure used by the OS to keep track of the mapping between logical pages and physical frames.</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-blue-500/10 border border-blue-500/20 p-6 rounded-2xl">
+                                <h4 class="font-bold text-blue-400 mb-2">Page Replacement Algorithms</h4>
+                                <ul class="list-disc list-inside text-sm text-slate-300 space-y-2">
+                                    <li><strong>FIFO (First-In-First-Out):</strong> The oldest page in memory is the first to be replaced.</li>
+                                    <li><strong>LRU (Least Recently Used):</strong> Replaces the page that has not been used for the longest period of time.</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Segmentation Tab -->
+                        <div id="about-segmentation" class="about-content hidden space-y-6">
+                            <h3 class="text-2xl font-bold text-blue-400">Segmentation</h3>
+                            <p class="text-slate-300 leading-relaxed">Segmentation is a memory-management scheme that supports the user view of memory. A logical address space is a collection of segments. Each segment has a name and a length.</p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">Logical View</h4>
+                                    <p class="text-sm text-slate-400">Users view memory as a collection of variable-sized segments (Code, Stack, Data, etc.) rather than a linear array of bytes.</p>
+                                </div>
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">Segment Table</h4>
+                                    <p class="text-sm text-slate-400">Maps logical segments to physical memory using a <strong>Base</strong> (starting physical address) and a <strong>Limit</strong> (length of the segment).</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-amber-500/10 border border-amber-500/20 p-6 rounded-2xl">
+                                <h4 class="font-bold text-amber-400 mb-2">Segmentation vs. Paging</h4>
+                                <ul class="list-disc list-inside text-sm text-slate-300 space-y-2">
+                                    <li><strong>Paging:</strong> Fixed-size blocks, no external fragmentation, but has internal fragmentation.</li>
+                                    <li><strong>Segmentation:</strong> Variable-size blocks, has external fragmentation, but matches user's logical view.</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Stack vs Heap Tab -->
+                        <div id="about-stackheap" class="about-content hidden space-y-6">
+                            <h3 class="text-2xl font-bold text-purple-400">Stack vs. Heap Memory</h3>
+                            <p class="text-slate-300 leading-relaxed">Programs use two distinct areas of memory for data storage: the Stack and the Heap.</p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-blue-500/10 border border-blue-500/20 p-6 rounded-2xl">
+                                    <h4 class="font-bold text-blue-400 mb-2">The Stack</h4>
+                                    <ul class="list-disc list-inside text-sm text-slate-300 space-y-1">
+                                        <li>LIFO (Last-In-First-Out) structure.</li>
+                                        <li>Stores local variables and function calls.</li>
+                                        <li>Managed automatically by the CPU.</li>
+                                        <li>Fast access, but limited size.</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-2xl">
+                                    <h4 class="font-bold text-emerald-400 mb-2">The Heap</h4>
+                                    <ul class="list-disc list-inside text-sm text-slate-300 space-y-1">
+                                        <li>Dynamic memory allocation.</li>
+                                        <li>Stores large objects and global data.</li>
+                                        <li>Managed by the programmer or GC.</li>
+                                        <li>Slower access, but flexible size.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- GC Tab -->
+                        <div id="about-gc" class="about-content hidden space-y-6">
+                            <h3 class="text-2xl font-bold text-amber-400">Garbage Collection</h3>
+                            <p class="text-slate-300 leading-relaxed">Garbage collection (GC) is a form of automatic memory management. The garbage collector attempts to reclaim memory occupied by objects that are no longer in use by the program.</p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">Mark and Sweep</h4>
+                                    <p class="text-sm text-slate-400">The collector "marks" all objects reachable from the root set, then "sweeps" away all unmarked objects to reclaim their memory.</p>
+                                </div>
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">Reference Counting</h4>
+                                    <p class="text-sm text-slate-400">Each object keeps a count of how many references point to it. When the count drops to zero, the object is immediately reclaimed.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Live Analytics Tab -->
+                        <div id="about-live" class="about-content hidden space-y-6">
+                            <h3 class="text-2xl font-bold text-rose-400">Live System Monitoring</h3>
+                            <p class="text-slate-300 leading-relaxed">The "GO LIVE" feature connects to a Python Flask backend to retrieve real-time memory statistics from the host system using the <code>psutil</code> library.</p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">Python Flask Backend</h4>
+                                    <p class="text-sm text-slate-400">A lightweight web server that exposes system-level metrics via a REST API. It bridges the gap between the browser and the operating system.</p>
+                                </div>
+                                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                    <h4 class="font-bold text-white mb-2">psutil Library</h4>
+                                    <p class="text-sm text-slate-400">A cross-platform library for retrieving information on running processes and system utilization (CPU, memory, disks, network, sensors).</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-blue-500/10 border border-blue-500/20 p-6 rounded-2xl">
+                                <h4 class="font-bold text-blue-400 mb-2">Key Metrics Explained</h4>
+                                <ul class="list-disc list-inside text-sm text-slate-300 space-y-2">
+                                    <li><strong>Swap In/Out:</strong> Indicates when the OS is moving data between RAM and Disk. High values often suggest "thrashing" and low physical memory.</li>
+                                    <li><strong>App Groups:</strong> Aggregates memory usage by process name to show which applications are consuming the most resources.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Live Memory Dashboard Section -->
+            <section id="live-section" class="simulator-section space-y-8">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-3xl font-bold flex items-center gap-3">
+                            🚀 Live Memory Dashboard
+                        </h2>
+                        <p class="text-slate-400 mt-1">Real-time analytics from your system (Powered by Node.js & systeminformation).</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div id="live-status-indicator" class="flex items-center gap-2 px-3 py-1 bg-slate-800 rounded-full border border-slate-700">
+                            <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse" id="status-dot"></div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400" id="status-text">Disconnected</span>
+                        </div>
+                        <button onclick="toggleLiveUpdates()" id="btn-toggle-live" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-blue-900/20">
+                            <i data-lucide="play" size="18"></i> Start Live Feed
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Main Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-3xl text-center">
+                        <p class="text-xs text-slate-500 uppercase font-bold mb-2">Total RAM</p>
+                        <p class="text-4xl font-bold text-blue-400" id="live-total-ram">0.00 GB</p>
+                    </div>
+                    <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-3xl text-center">
+                        <p class="text-xs text-slate-500 uppercase font-bold mb-2">Used RAM</p>
+                        <p class="text-4xl font-bold text-emerald-400" id="live-used-ram">0.00 GB</p>
+                    </div>
+                    <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-3xl text-center">
+                        <p class="text-xs text-slate-500 uppercase font-bold mb-2">Free RAM</p>
+                        <p class="text-4xl font-bold text-emerald-400" id="live-free-ram">0.00 GB</p>
+                    </div>
+                </div>
+
+                <!-- Process Bar -->
+                <div class="space-y-4">
+                    <div id="process-bar" class="w-full h-10 bg-slate-800 rounded-xl overflow-hidden flex border border-slate-700">
+                        <!-- Process segments will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Top App Groups -->
+                <div class="space-y-6">
+                    <h3 class="text-2xl font-bold">Top App Groups</h3>
+                    <div id="app-groups-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                        <!-- App group cards will be injected here -->
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Live Segments Modal -->
+    <div id="segments-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[150] hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                <div>
+                    <h2 id="modal-title" class="text-2xl font-bold text-white">Live Segments: Code.exe (PID: 14116)</h2>
+                    <p class="text-slate-400 text-sm mt-1">These are the real logical segments loaded in RAM by the OS for this specific application.</p>
+                </div>
+                <button onclick="closeSegmentsModal()" class="text-slate-500 hover:text-white transition-colors">
+                    <i data-lucide="x" size="24"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 space-y-6">
+                <!-- Segments Table -->
+                <div class="overflow-hidden rounded-xl border border-slate-800">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-800/50 text-slate-400 font-bold uppercase text-[10px] tracking-wider">
+                            <tr>
+                                <th class="px-4 py-3">Seg ID</th>
+                                <th class="px-4 py-3">Path / Module</th>
+                                <th class="px-4 py-3">Base Address (Hex)</th>
+                                <th class="px-4 py-3">Limit (Size)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="segments-table-body" class="divide-y divide-slate-800 text-slate-300">
+                            <!-- Rows will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Address Translation Test -->
+                <div class="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-6 space-y-4">
+                    <h3 class="text-lg font-bold text-white">Address Translation Test</h3>
+                    <div class="flex gap-3">
+                        <select id="translation-segment" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1">
+                            <!-- Options will be injected here -->
+                        </select>
+                        <input type="text" id="translation-offset" placeholder="Enter Offset (bytes)..." class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-48">
+                        <button onclick="translateAddress()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg text-sm font-bold transition-all">
+                            Translate
+                        </button>
+                    </div>
+
+                    <!-- Translation Result -->
+                    <div id="translation-result" class="hidden bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 animate-in slide-in-from-top-2 duration-300">
+                        <div class="flex items-center gap-2 text-emerald-400 font-bold mb-2">
+                            <i data-lucide="check-circle-2" size="16"></i>
+                            Valid Address Translation
+                        </div>
+                        <div class="font-mono text-xs space-y-1">
+                            <div class="text-slate-400">Physical Address = Base + Offset</div>
+                            <div id="translation-formula" class="text-emerald-400/80">Physical Address = 0x7ff703d22000 + 887</div>
+                            <div id="translation-final" class="text-white text-sm font-bold mt-2">Physical Address = Hex: 0x7FF703D22377</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    
+    <!-- Demo Explanation Overlay -->
+    <div id="demo-explanation" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] hidden">
+        <div class="bg-slate-900/95 border border-blue-500/50 backdrop-blur-md px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-4 max-w-2xl border-l-4 border-l-blue-500">
+            <div class="w-10 h-10 rounded-full bg-blue-600/20 flex items-center justify-center text-blue-400 shrink-0">
+                <i data-lucide="info" size="24"></i>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-blue-400 uppercase tracking-widest mb-0.5">Demo Step</p>
+                <p id="demo-text" class="text-sm text-slate-200 leading-relaxed font-medium"></p>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

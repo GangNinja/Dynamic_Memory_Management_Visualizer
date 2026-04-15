@@ -1,196 +1,90 @@
-body{
-font-family: Arial;
-background: linear-gradient(120deg,#1d2671,#c33764);
-color:white;
-text-align:center;
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #0f172a;
+    color: #f8fafc;
+}
+.font-mono {
+    font-family: 'JetBrains Mono', monospace;
+}
+.sidebar-item.active {
+    background-color: #1e293b;
+    color: #3b82f6;
+    border-right: 4px solid #3b82f6;
+}
+.simulator-section {
+    display: none;
+}
+.simulator-section.active {
+    display: block;
+}
+.about-tab.active {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+}
+.memory-block {
+    transition: all 0.3s ease;
+}
+.memory-block:hover {
+    transform: scale(1.02);
+    z-index: 10;
+}
+.tooltip {
+    visibility: hidden;
+    position: absolute;
+    z-index: 50;
+    background-color: #1e293b;
+    color: #fff;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    font-size: 10px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.has-tooltip:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #0f172a;
+}
+::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #475569;
 }
 
-h1{
-margin-top:20px;
+/* Live Dashboard Styles */
+#live-section .bg-slate-800\/50 {
+    backdrop-filter: blur(8px);
 }
 
-.controls{
-margin:20px auto;
-padding:20px;
-background:rgba(255,255,255,0.1);
-border-radius:10px;
-width:60%;
+#live-section .rounded-3xl {
+    border-radius: 1.5rem;
 }
 
-input,select,button{
-margin:10px;
-padding:10px;
-border:none;
-border-radius:5px;
+#app-groups-grid .group:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
 }
 
-button{
-background:#00c6ff;
-color:white;
-cursor:pointer;
-transition:0.3s;
+#process-bar div {
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-button:hover{
-background:#0072ff;
-transform:scale(1.1);
-}
-
-#memoryContainer{
-display:flex;
-flex-direction:row;
-justify-content:center;
-margin-top:40px;
-height:120px;
-border:2px solid white;
-}
-
-.block{
-display:flex;
-align-items:center;
-justify-content:center;
-border-right:1px solid black;
-font-weight:bold;
-}
-
-.free{
-background:#777;
-}
-
-.used{
-background:#00ff99;
-color:black;
-}
-
-.fragment{
-background:#ff4444;
-}
-
-/* Paging Styles */
-.mode-tabs {
-  margin: 20px auto;
-  padding: 10px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 10px;
-  width: 60%;
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-}
-
-.tab-btn {
-  padding: 10px 20px;
-  background: rgba(255,255,255,0.2);
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.tab-btn.active {
-  background: #00c6ff;
-  transform: scale(1.05);
-}
-
-.section {
-  display: none;
-}
-
-.section.active {
-  display: block;
-}
-
-.paging-controls {
-  margin: 20px auto;
-  padding: 20px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 10px;
-  width: 60%;
-}
-
-#framesContainer {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  margin-top: 40px;
-  height: 120px;
-  border: 2px solid white;
-  max-width: 500px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.frame {
-  width: 60px;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  border-right: 1px solid #333;
-  font-size: 18px;
-}
-
-.frame.empty {
-  background: #777;
-  color: white;
-}
-
-.frame.hit {
-  background: #00ff99;
-  color: black;
-}
-
-.frame.fault {
-  background: #ff4444;
-  color: white;
-  animation: pulse 0.5s;
+.animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
+    0%, 100% { opacity: 1; }
+    50% { opacity: .5; }
 }
-
-#pagingStats {
-  margin-top: 20px;
-  font-size: 24px;
-  font-weight: bold;
-}
-
-.trace-table {
-  margin: 20px auto;
-  width: 80%;
-  background: rgba(255,255,255,0.1);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.trace-table table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.trace-table th, .trace-table td {
-  padding: 12px;
-  text-align: center;
-  border-bottom: 1px solid rgba(255,255,255,0.3);
-}
-
-.trace-table th {
-  background: rgba(0,198,255,0.5);
-}
-
-.trace-table tr:hover {
-  background: rgba(255,255,255,0.2);
-}
-
-.ref-input {
-  width: 400px;
-  height: 80px;
-  resize: vertical;
-}
-
 
